@@ -129,7 +129,7 @@ PRIVATE S16 ueProcUeAuthResp(UetMessage *tfwMsg, Pst *pst);
 PRIVATE S16 ueAppUtlBldPdnConReq(UeCb *ueCb,
 	        CmNasEvnt **esmEvnt, UeEsmProtCfgOpt *protCfgOpt, U32 pdnType, Bool eti);
 PRIVATE S16 ueAppUtlBldAttachReq(UeCb*, CmNasEvnt**, U8, U8,U8,
-	        UeEmmNasAddUpdType*,UeEsmProtCfgOpt*,UeEmmDrxPrm*, U32 pdnType, Bool eti);
+	        UeEmmNasAddUpdType*,UeEsmProtCfgOpt*,UeEmmDrxPrm*, U32 pdnType, Bool eti,  UeEmmBTAttachParameterToken *attachToken,UeEmmBTAttachParameterUeSig *attachSig,UeEmmBTAttachParameterBrId *attachBrId);
 PRIVATE S16 ueAppEsmHndlOutActDefBearerAcc(UeEsmCb *esmCb, CmNasEvnt *evnt);
 PRIVATE S16 ueAppEsmHndlOutActDedBearerAcc(UeEsmCb *esmCb, CmNasEvnt *evnt);
 PRIVATE S16 ueAppEsmHndlOutActDedBearerRej(UeEsmCb *esmCb, CmNasEvnt *evnt);
@@ -156,6 +156,7 @@ PRIVATE S16 ueAppEmmHndlInServiceRej(CmNasEvnt *evnt, UeCb *ueCb);
 PRIVATE S16 ueAppEmmHndlInDetachAccept(CmNasEvnt *evnt, UeCb *ueCb);
 PRIVATE S16 ueAppEmmHndlInIdentReq(CmNasEvnt *evnt, UeCb *ueCb);
 PRIVATE S16 ueAppEmmHndlInAuthReq(CmNasEvnt *evnt, UeCb *ueCb);
+
 PRIVATE S16 ueAppEmmHndlInSecModecmd(CmNasEvnt *evnt, UeCb *ueCb);
 PRIVATE S16 ueAppEsmHndlIncActDefBearerReq(UeEsmCb*, CmNasEvnt*, UeCb*,U8*,U8);
 PRIVATE S16 ueAppEmmHndlInAttachAccept(CmNasEvnt *evnt, UeCb  *ueCb);
@@ -223,6 +224,14 @@ PRIVATE S16 ueAppEsmHndlIncPdnDisconRej(UeEsmCb *esmCb,CmNasEvnt *evnt,
   UeCb *ueCb);
 void ueSendErabSetupRspForFailedBearers(NbuErabsInfo *pNbuErabsInfo);
 
+// added for brokerd uTelco
+PRIVATE S16 _get_sig_len(U8 *sig);
+PRIVATE S16 ueAppEmmHndlInBtAuthReq(CmNasEvnt *evnt, UeCb *ueCb);
+PRIVATE S16 ueBldBtAuthReqIndMsgToTfw(UetMessage *tfwMsg, UeCb *ueCb);
+PRIVATE S16 ueAppUtlBldBtAuthResp(UeCb*, CmNasEvnt**, CmEmmBtAuthPrmRES*);
+PRIVATE S16 ueProcUeBtAuthResp(UetMessage *tfwMsg, Pst *pst);
+PRIVATE S16 ueAppSndBtAuthResponse(UeCb *ueCb);
+PRIVATE S16 ueAuthBrUtAddKeys(UeBtInfo* ueBTCtxt, UeAppSecCtxtCb* secCtxt);
 
 
 PRIVATE S16 ueAppGetDrb(UeCb *ueCb, U8 *drb)
@@ -1117,7 +1126,11 @@ PRIVATE S16 ueAppUtlBldAttachReq
  UeEsmProtCfgOpt *protCfgOpt,
  UeEmmDrxPrm *drxParm,
  U32 pdnType,
- Bool eti
+ Bool eti,
+ // added for brokerd utelco
+ UeEmmBTAttachParameterToken *attachToken,
+ UeEmmBTAttachParameterUeSig *attachSig,
+ UeEmmBTAttachParameterBrId *attachBrId
 )
 {
    S16 ret = ROK;
@@ -1270,6 +1283,29 @@ PRIVATE S16 ueAppUtlBldAttachReq
       CM_FREE_NASEVNT(ueEvt);
       RETVALUE(RFAILED);
    }
+   // added for brokerd utelco
+   if(attachToken->pres == TRUE) 
+   {
+      UE_LOG_DEBUG(ueAppCb, "Including Token in Attach Request\n");
+      attachReq->btattachparametertoken.pres = TRUE;
+      attachReq->btattachparametertoken.len = attachToken->len;
+      attachReq->btattachparametertoken.token = attachToken->token;
+   }
+   if(attachSig->pres == TRUE)
+   {
+      UE_LOG_DEBUG(ueAppCb, "Including UE SIG in Attach Request\n");
+      attachReq->btattachparameteruesig.pres = TRUE;
+      attachReq->btattachparameteruesig.len = attachSig->len;
+      attachReq->btattachparameteruesig.sig = attachSig->sig;
+   }
+   if(attachBrId->pres == TRUE)
+   {
+      UE_LOG_DEBUG(ueAppCb, "Including BR ID in Attach Request\n");
+      attachReq->btattachparameterbrid.pres = TRUE;
+      attachReq->btattachparameterbrid.len = attachBrId->len;
+      attachReq->btattachparameterbrid.brid = attachBrId->brid;
+   }
+
    UE_LOG_EXITFN(ueAppCb, ret);
 }
 
@@ -2015,6 +2051,14 @@ PRIVATE S16 ueProcUeAttachReq(UetMessage *p_ueMsg, Pst *pst)
    pdnType = p_ueMsg->msg.ueUetAttachReq.pdnType;
    eti     = p_ueMsg->msg.ueUetAttachReq.eti;
 
+   /* added for brokerd utelco */
+   UeEmmBTAttachParameterToken *token = NULLP;
+   UeEmmBTAttachParameterUeSig *sig = NULLP;
+   UeEmmBTAttachParameterBrId *brid = NULLP;
+   token = &(p_ueMsg->msg.ueUetAttachReq.btattachparametertoken);
+   sig = &(p_ueMsg->msg.ueUetAttachReq.btattachparameteruesig);
+   brid = &(p_ueMsg->msg.ueUetAttachReq.btattachparameterbrid);
+
    /* Fetching the UeCb */
    ret = ueDbmFetchUe(ueId, (PTR*)&ueCb);
    if (ret != ROK)
@@ -2022,9 +2066,19 @@ PRIVATE S16 ueProcUeAttachReq(UetMessage *p_ueMsg, Pst *pst)
       UE_LOG_ERROR(ueAppCb, "UeCb List NULL ueId = %d", ueId);
       RETVALUE(ret);
    }
+   /* added for brokerd utelco */
+   if(token->pres && sig->pres) 
+   {
+      UE_LOG_DEBUG(ueAppCb, "This is a BT attach, load keys from ueAppCb\n");
+     // brokered telco attach, load keys
+      ueCb->ueBTCtxt.ue_private_rsa = ueAppCb->ue_private_rsa;
+      ueCb->ueBTCtxt.ue_private_ecdsa = ueAppCb->ue_private_ecdsa;
+      ueCb->ueBTCtxt.ut_public_ecdsa = ueAppCb->ut_public_ecdsa;
+      ueCb->ueBTCtxt.br_public_ecdsa = ueAppCb->br_public_ecdsa;
+   }
 
    ret = ueAppUtlBldAttachReq(ueCb,&attachReqEvnt, mIdType, useOldSecCtxt, epsAtchType,\
-   	                       addUpdType, protCfgOpt, drxParm, pdnType, eti);
+   	                       addUpdType, protCfgOpt, drxParm, pdnType, eti, /* added for brokerd utelco */ token, sig, brid);
    if (ret != ROK)
    {
       UE_LOG_ERROR(ueAppCb, "Attach Request Building failed");
@@ -5525,6 +5579,14 @@ PUBLIC S16 ueUiProcessTfwMsg(UetMessage *p_ueMsg, Pst *pst)
         ret = ueProcUeAuthFailure(p_ueMsg, pst);
         break;
       }
+      // added for brokerd utelco
+      case UE_BT_AUTH_RES_TYPE:
+      {
+         UE_LOG_DEBUG(ueAppCb, "RECIEVED UE BROKER AUTHENTICATION RESPONSE "\
+               "MESSAGE FROM TFWAPP");
+         ret = ueProcUeBtAuthResp(p_ueMsg, pst);
+         break;
+      }
       default:
       {
          UE_LOG_ERROR(ueAppCb, "Recieved Invalid message of type: %d",
@@ -5602,6 +5664,32 @@ PRIVATE S16 ueBldAuthReqIndMsgToTfw(UetMessage *tfwMsg, UeCb *ueCb)
 
    UE_LOG_EXITFN(ueAppCb, ret);
 } /* End of ueBldAuthReqIndMsgToTfw */
+
+/*
+ *
+ *       Fun: ueBldBtAuthReqIndMsgToTfw
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueBldBtAuthReqIndMsgToTfw(UetMessage *tfwMsg, UeCb *ueCb)
+{
+   S16 ret = ROK;
+   UeAppCb *ueAppCb = NULLP;
+   UE_GET_CB(ueAppCb);
+
+   UE_LOG_ENTERFN(ueAppCb);
+   UE_LOG_DEBUG(ueAppCb, "Building Authentication Request Indication");
+   tfwMsg->msgType = UE_BT_AUTH_REQ_IND_TYPE;
+   tfwMsg->msg.ueUetBtAuthReqInd.ueId = ueCb->ueId;
+   UE_LOG_EXITFN(ueAppCb, ret);
+} /* End of ueBldBtAuthReqIndMsgToTfw */   
 
 /*
  *
@@ -6298,6 +6386,39 @@ PRIVATE S16 ueAppRcvEmmMsg
          }
          break;
       }
+      // added for brokerd uTelco
+      case CM_EMM_MSG_BROKER_AUTH_REQ: /* Authentication request from mme */
+      {
+         /* Initiate authentication response to MME */
+
+         CmEmmBtAuthReq *btAuthReq = &(evnt->m.emmEvnt->u.btAuthReq);
+         cmMemset((U8*)&ueCb->secCtxt, 0, sizeof(ueCb->secCtxt));
+         cmMemcpy(ueCb->ueBTCtxt.token, btAuthReq->token.val, CM_EMM_MAX_BR_TOKEN);
+         cmMemcpy(ueCb->ueBTCtxt.brsig, btAuthReq->brsig.val, CM_EMM_MAX_BR_SIG);
+         cmMemcpy(ueCb->ueBTCtxt.utsig, btAuthReq->utsig.val, CM_EMM_MAX_UT_SIG);
+         ueCb->secCtxt.tsc = btAuthReq->nasKsi.tsc;
+         ueCb->secCtxt.ksi = btAuthReq->nasKsi.id;
+
+         if (ueCb->ecmCb.state == UE_ECM_IDLE) {
+           ueCb->ecmCb.state = UE_ECM_CONNECTED;
+         }
+
+         UE_LOG_DEBUG(ueAppCb, "Sending BT uth Request Indication to Test "\
+               "Controller");
+         ueCb->res.pres = TRUE;
+         ueCb->res.len = UE_USIM_RES_SIZE;
+         tfwMsg = (UetMessage*)ueAlloc(sizeof(UetMessage));
+         ret = ueBldBtAuthReqIndMsgToTfw(tfwMsg, ueCb);
+
+         ret = ueSendToTfwApp(tfwMsg, &ueAppCb->fwPst);
+         if (ret != ROK)
+         {
+            UE_LOG_ERROR(ueAppCb, "Sending Authentication Request "\
+                  "Indication to TFWAPP failed");
+         }
+         break;
+      }
+
       case CM_EMM_MSG_SEC_MODE_CMD:
       {
          ueCb->secCtxt.ksi    = evnt->m.emmEvnt->u.secModCmd.nasKsi.id;
@@ -6686,6 +6807,35 @@ PRIVATE S16 ueAppEmmHndlInAuthReq(CmNasEvnt *evnt, UeCb *ueCb)
    UE_LOG_ENTERFN(ueAppCb);
 
    UE_LOG_DEBUG(ueAppCb, "Handling Incoming Authenticatin request message");
+   /*send message to USER*/
+   ret = ueAppRcvEmmMsg(evnt, evnt->m.emmEvnt->msgId, ueCb);
+
+   UE_LOG_EXITFN(ueAppCb, ret);
+}
+
+// added for brokerd uTelco
+/*
+ *
+ *       Fun: ueAppEmmHndlInBtAuthReq
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueAppEmmHndlInBtAuthReq(CmNasEvnt *evnt, UeCb *ueCb)
+{
+   S16 ret = ROK;
+   UeAppCb *ueAppCb = NULLP;
+
+   UE_GET_CB(ueAppCb);
+   UE_LOG_ENTERFN(ueAppCb);
+
+   UE_LOG_DEBUG(ueAppCb, "Handling Incoming BT Authenticatin request message");
    /*send message to USER*/
    ret = ueAppRcvEmmMsg(evnt, evnt->m.emmEvnt->msgId, ueCb);
 
@@ -7499,6 +7649,20 @@ PRIVATE S16 ueAppEmmHdlIncUeEvnt(CmNasEvnt *ueEvnt, UeCb *ueCb)
          }
          break;
       }
+      // added for brokerd uTelco
+      case CM_EMM_MSG_BROKER_AUTH_REQ:
+      {
+         UE_LOG_DEBUG(ueAppCb, "Received Broker Authentication Request");
+         ret = ueAppEmmHndlInBtAuthReq(ueEvnt, ueCb);
+         if (ret != ROK)
+         {
+            UE_LOG_ERROR(ueAppCb, "Handling Incoming Broker Authentication "\
+                  "Request message failed");
+            ret = RFAILED;
+         }
+         break;
+      }
+
       case CM_EMM_MSG_SEC_MODE_CMD:
       {
          UE_LOG_DEBUG(ueAppCb, "Received Security Mode Command");
@@ -9491,3 +9655,245 @@ void ueSendErabSetupRspForFailedBearers(NbuErabsInfo *pNbuErabsInfo) {
   RETVOID;
 }
 
+// added for brokerd utelco
+PRIVATE S16 _get_sig_len(U8 *sig)
+{
+   return (int)sig[1] + 2; 
+}
+
+PRIVATE S16 ueAuthBrUtAddKeys(UeBtInfo* ueBTCtxt, UeAppSecCtxtCb* secCtxt)
+{
+   UeAppCb *ueAppCb = NULLP;
+   UE_GET_CB(ueAppCb);
+   uint8_t digest[SHA_DIGEST_LENGTH];
+   SHA1(ueBTCtxt->token, CM_EMM_MAX_BR_TOKEN, digest);
+   // verify broker's signature
+   if(ECDSA_verify(NID_sha1, digest, SHA_DIGEST_LENGTH, (unsigned char *)ueBTCtxt->brsig, _get_sig_len(ueBTCtxt->brsig), ueBTCtxt->br_public_ecdsa) != 1)
+   {
+      UE_LOG_ERROR(ueAppCb, "Fails in verifying broker's signature");
+      RETVALUE(RFAILED);
+   }
+   // verify uTelco's signature
+   uint8_t payload[CM_EMM_MAX_BR_TOKEN + CM_EMM_MAX_BR_SIG];
+   cmMemcpy(payload, ueBTCtxt->token, CM_EMM_MAX_BR_TOKEN);
+   cmMemcpy(payload + CM_EMM_MAX_BR_TOKEN, ueBTCtxt->brsig, CM_EMM_MAX_BR_SIG);
+   SHA1(payload, CM_EMM_MAX_BR_TOKEN + CM_EMM_MAX_BR_SIG, digest);
+   if(ECDSA_verify(NID_sha1, digest, SHA_DIGEST_LENGTH, (unsigned char *)ueBTCtxt->utsig, _get_sig_len(ueBTCtxt->utsig), ueBTCtxt->ut_public_ecdsa) != 1)
+   {
+      UE_LOG_ERROR(ueAppCb, "Fails in verifying uTelco's signature");
+      RETVALUE(RFAILED);
+   }
+   // decrypt the contents
+   int rc = RSA_private_decrypt(CM_EMM_MAX_BR_TOKEN, (unsigned char *)ueBTCtxt->token, (unsigned char *)ueBTCtxt->plain_token, ueBTCtxt->ue_private_rsa, RSA_PKCS1_PADDING);  
+   // add Kasme
+   cmMemcpy(secCtxt->kasme, ueBTCtxt->plain_token + BR_ID_SIZE + UT_ID_SIZE, UE_APP_SZ_KASME_KEY);
+   char err_buf[120];
+   ERR_error_string(ERR_get_error(), err_buf);
+   printf("RSA size: %d, RC: %d, error code %s\n", RSA_size(ueBTCtxt->ue_private_rsa), rc,  err_buf);
+   printf("First byte of kasme %d, last byte %d\n", ueBTCtxt->token[0], ueBTCtxt->token[CM_EMM_MAX_BR_TOKEN - 1]);
+   printf("First byte of kasme %d, last byte %d\n", secCtxt->kasme[0], secCtxt->kasme[UE_APP_SZ_KASME_KEY - 1]);
+   RETVALUE(ROK);
+}
+
+/*
+ *
+ *       Fun: ueProcUeBtAuthResp
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueProcUeBtAuthResp(UetMessage *tfwMsg, Pst *pst)
+{
+   S16 ret = ROK;
+   U16 ueId;
+   UeSQN sqnRcvd    = {0};
+   UeSQN maxSqnRcvd = {0};
+   UeRand randRcvd  = {0};
+
+   UeAppCb *ueAppCb = NULLP;
+   UeCb *ueCb = NULLP;
+   UE_GET_CB(ueAppCb);
+
+   UE_LOG_ENTERFN(ueAppCb);
+   ueId = tfwMsg->msg.ueUetBtAuthRsp.ueId;
+
+   /* Fetching the UeCb */
+   ret = ueDbmFetchUe(ueId, (PTR*)&ueCb);
+   if (ret != ROK)
+   {
+      UE_LOG_ERROR(ueAppCb, "UeCb List NULL ueId = %d", ueId);
+      RETVALUE(ret);
+   }
+
+   ret = ueAppSndBtAuthResponse(ueCb);
+   if (ret != ROK)
+   {
+      UE_LOG_ERROR(ueAppCb, "Could not send the Auth Response message to "\
+            "eNodeB");
+      RETVALUE(ret);
+   }
+   UE_LOG_EXITFN(ueAppCb, ret);
+}
+
+PRIVATE S16 ueAppSndBtAuthResponse(UeCb *ueCb)
+{
+   U8                   isPlainMsg   = TRUE;
+   S16                  ret          = ROK;
+   UeAppCb              *ueAppCb = NULLP;
+   UeAppMsg             srcMsg;
+   UeAppMsg             dstMsg;
+   CmNasEvnt            *btAuthRspEvnt = NULLP;
+   CmEmmBtAuthPrmRES    btAuthParmRes;
+   NbuUlNasMsg          *pUlNbMsg    = NULLP;
+   NhuDedicatedInfoNAS  nasEncPdu;
+
+   UE_GET_CB(ueAppCb);
+   UE_LOG_ENTERFN(ueAppCb);
+
+   UE_LOG_DEBUG(ueAppCb, "Authenticating the Broker and uTelco");
+
+   ret = ueAuthBrUtAddKeys(&(ueCb->ueBTCtxt), &(ueCb->secCtxt)); // authenticate br & ut, and add kasme
+
+   if (ROK != ret)
+   {
+      UE_LOG_ERROR(ueAppCb, "BT Authentication Failed");
+      printf("BT Authentication Failed");
+      RETVALUE(ret);
+   }
+
+   UE_LOG_DEBUG(ueAppCb, "Sending BT Authentication response");
+
+   /* Fill btAuthParmRes */
+   cmMemset((U8*)&btAuthParmRes, 0, sizeof(CmEmmBtAuthPrmRES));
+   btAuthParmRes.pres = TRUE;
+   btAuthParmRes.len = 1;
+   btAuthParmRes.val = TRUE;
+   ret = ueAppUtlBldBtAuthResp(ueCb, &btAuthRspEvnt, &btAuthParmRes);
+   if(ROK != ret)
+   {
+      UE_LOG_DEBUG(ueAppCb, "Could not Build the BT Authentication response");
+      RETVALUE(ret);
+   }
+
+   /* NB message filliing */
+   pUlNbMsg = (NbuUlNasMsg *)ueAlloc(sizeof(NbuUlNasMsg));
+   /* Encoding Nas PDU */
+   ret = ueAppEdmEncode(btAuthRspEvnt, &nasEncPdu);
+   if (ret != ROK)
+   {
+      UE_LOG_ERROR(ueAppCb, "BT Authentication Response message Encode Failed");
+      CM_FREE_NASEVNT(&btAuthRspEvnt);
+      RETVALUE(ret);
+   }
+
+   /** Integrity Protected **/
+   if(CM_EMM_SEC_HDR_TYPE_PLAIN_NAS_MSG != btAuthRspEvnt->secHT)
+   {
+      isPlainMsg = FALSE;
+      srcMsg.val = nasEncPdu.val;
+      srcMsg.len = nasEncPdu.len;
+      ret = ueAppCmpUplnkSec(&ueCb->secCtxt, btAuthRspEvnt->secHT, &srcMsg,
+            &dstMsg);
+      if(ROK != ret)
+      {
+         UE_LOG_ERROR(ueAppCb, "Uplink Security Failed");
+         btAuthRspEvnt->pdu = NULLP;
+         CM_FREE_NASEVNT(&btAuthRspEvnt);
+         EDM_FREE(nasEncPdu.val, CM_MAX_EMM_ESM_PDU);
+         RETVALUE(ret);
+      }
+      EDM_FREE(nasEncPdu.val, CM_MAX_EMM_ESM_PDU);
+      nasEncPdu.val = dstMsg.val;
+      nasEncPdu.len = dstMsg.len;
+   }
+   CM_FREE_NASEVNT(&btAuthRspEvnt);
+
+   pUlNbMsg->ueId = ueCb->ueId;
+   pUlNbMsg->nasPdu.pres = TRUE;
+   pUlNbMsg->nasPdu.len = nasEncPdu.len;
+
+   pUlNbMsg->nasPdu.val = (U8 *)ueAlloc(pUlNbMsg->nasPdu.len);
+   cmMemcpy((U8 *)pUlNbMsg->nasPdu.val, (U8 *)nasEncPdu.val,
+         pUlNbMsg->nasPdu.len);
+
+   if(isPlainMsg)
+   {
+      EDM_FREE(nasEncPdu.val, CM_MAX_EMM_ESM_PDU);
+   }
+   ret = ueSendUlNasMsgToNb(pUlNbMsg,&ueAppCb->nbPst);
+   if (ret != ROK)
+   {
+      UE_LOG_DEBUG(ueAppCb, "Could not Send the BT Authentication response.\n");
+      RETVALUE(RFAILED);
+   }
+   RETVALUE(ret);
+}
+
+/*
+ *
+ *       Fun: ueAppUtlBldBtAuthResp
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueAppUtlBldBtAuthResp
+(
+ UeCb *ueCb,
+ CmNasEvnt **ueEvt,
+ CmEmmBtAuthPrmRES *BtAuthParmRes
+)
+{
+   UeAppCb *ueAppCb = NULLP;
+   CmEmmBtAuthRsp  *btAuthRsp = NULLP;
+   CmEmmMsg *emmMsg = NULLP;
+
+   UE_GET_CB(ueAppCb);
+   UE_LOG_ENTERFN(ueAppCb);
+
+   UE_LOG_DEBUG(ueAppCb, "Building BT Authentication response");
+
+   if(ueEvt == NULLP)
+   {
+      RETVALUE(RFAILED);
+   }
+   /* Allocate memory for pdu */
+   CM_ALLOC_NASEVNT (ueEvt, CM_EMM_PD);
+
+   if(*ueEvt == NULLP)
+   {
+      RETVALUE(RFAILED);
+   }
+   if (cmGetMem(&((*ueEvt)->memCp), sizeof(CmEmmMsg), (Ptr *)&emmMsg) != ROK)
+   {
+      CM_FREE_NASEVNT(ueEvt);
+      RETVALUE(RFAILED);
+   }
+
+   (*ueEvt)->m.emmEvnt = emmMsg;
+   btAuthRsp = &((*ueEvt)->m.emmEvnt->u.btAuthRsp);
+
+   /* Fill header information*/
+
+   /* Security header type is "Plain NAS message, not security protected" */
+   emmMsg->secHdrType = CM_EMM_SEC_HDR_TYPE_PLAIN_NAS_MSG;
+   emmMsg->protDisc = CM_EMM_PD;
+   emmMsg->msgId = CM_EMM_MSG_BROKER_AUTH_RSP;
+
+   /* Fill mandatory IEs */
+   /* Auth response parameter*/
+   cmMemcpy((U8 *)&btAuthRsp->RES, (U8 *)BtAuthParmRes, sizeof(CmEmmBtAuthPrmRES));
+
+   RETVALUE(ROK);
+}

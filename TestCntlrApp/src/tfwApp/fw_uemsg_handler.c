@@ -121,6 +121,9 @@ PRIVATE S16 handlePdnDisConRejInd(Pst *pst, UetMessage *uetPdnDisConRejInd);
 PRIVATE Void handle_erab_setup_req_failed_for_bearers( Pst *pst, UetMessage *erab_setup_req_failed_for_bearers);
 PRIVATE Void sendUeErabSetupReqFailedForBearers( UetMessage *erab_setup_req_failed_for_bearers);
 
+/* added for brokerd uTelco */
+PUBLIC S16 ueBtAuthReqInd(Pst *pst,UetMessage *uetBtAuthReqInd);
+
 
 /*
 *        Fun:  sendUeAppConfigRespToTstCntlr
@@ -206,6 +209,13 @@ PUBLIC S16 handleMessageFromUeApp
          FW_LOG_DEBUG(fwCb, "Recieved Auth Indication");
          /*ret = sendUeAuthReqIndToTstCntlr(uetRspMsg);*/
          ueAuthReqInd(pst, uetRspMsg);
+         break;
+      }
+      // added for brokerd utelco
+      case UE_BT_AUTH_REQ_IND_TYPE:
+      {
+         FW_LOG_DEBUG(fwCb, "Recieved BT Auth Indication");
+         ueBtAuthReqInd(pst, uetRspMsg);
          break;
       }
       case UE_SEC_MOD_CMD_IND_TYPE:
@@ -575,6 +585,74 @@ PUBLIC S16 ueAuthReqInd
 
    FW_LOG_EXITFN(fwCb, ret);
 } /* ueAuthReqInd */
+
+// added for brokerd utelco
+/*
+*        Fun:   ueBtAuthReqInd
+*
+*        Desc:  Handles Auth Request indications.
+*
+*        Ret:   ROK
+*
+*        Notes: None
+*
+*        File: fw_uemsg_handler.c
+*
+*/
+PUBLIC S16 ueBtAuthReqInd
+(
+ Pst *pst,
+ UetMessage *uetBtAuthReqInd
+)
+{
+   S16 ret = ROK;
+   FwCb *fwCb = NULLP;
+   S16 flag = 0;
+
+   FW_GET_CB(fwCb);
+   FW_LOG_ENTERFN(fwCb);
+
+   if(uetBtAuthReqInd->msgType == UE_BT_AUTH_REQ_IND_TYPE)
+   {
+      UeIdCb *ueIdCb  = NULLP;
+      CmLList  *tmpNode = NULLP;     /* Stores the Ie Node */
+
+      CM_LLIST_FIRST_NODE(&fwCb->ueIdList, tmpNode);
+      while (tmpNode != NULLP)
+      {
+         ueIdCb = (UeIdCb*)tmpNode->node;
+         if (ueIdCb->ue_id == uetBtAuthReqInd->msg.ueUetBtAuthReqInd.ueId)
+         {
+            FW_LOG_DEBUG(fwCb, "ue id %d found",
+                   uetBtAuthReqInd->msg.ueUetBtAuthReqInd.ueId);
+            flag = 1;
+            ueIdCb->state = UE_AUTH_REQ_IND_DONE;  /*Update the state */
+            ueIdCb->link.node = (PTR)ueIdCb;
+         }
+         tmpNode = tmpNode->next;
+      }
+
+      /* if ueid found,(END TO END ATTACH) prepare
+       * Auth response and send to ue app */
+      if (flag == 1)
+      {
+         ueBtAuthResp_t *authResp = NULL;
+         FW_ALLOC_MEM(fwCb, &authResp, sizeof(ueBtAuthResp_t));
+         authResp->ue_Id = uetBtAuthReqInd->msg.ueUetBtAuthReqInd.ueId;
+         handlBtAuthResp(authResp);
+         ueIdCb->state = UE_AUTH_RESP_DONE; /*Update the state */
+         FW_FREE_MEM(fwCb, authResp, sizeof(ueBtAuthResp_t));
+      }
+      /*else, send to test controller*/
+      else
+      {
+         //TODO: focus on e2e attach first
+         //sendUeAuthReqIndToTstCntlr(uetBtAuthReqInd);
+      }
+   }
+
+   FW_LOG_EXITFN(fwCb, ret);
+} /* ueBTAuthReqInd */
 
 
 /*

@@ -217,7 +217,7 @@ COPTS_APP=-pipe -pedantic -Wall -Wunused -Wno-comment -Wshadow \
 			 -fno-strict-aliasing -Wno-variadic-macros --std=c99
 
 # linker options:
-LOPTS=-lpthread -ldl
+LOPTS=-lpthread -ldl -lssl -lcrypto # added for brokerd utelco
 
 LNXLOPTS= -ldl -lpthread -lnsl -lrt -lm -export-dynamic
 

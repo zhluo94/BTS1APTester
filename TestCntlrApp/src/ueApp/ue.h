@@ -69,6 +69,15 @@ extern "C" {
 
 #define UE_GET_CB(_ueAppCb)  ((_ueAppCb) = &gueAppCb)
 
+
+// added for brokerd utelco
+#define BR_ID_SIZE 1
+#define UT_ID_SIZE 1
+#define UE_UT_KEY_SIZE 32
+#define UE_BR_KEY_SIZE 32
+#define NONCE_SIZE 5
+#define BR_UE_PLAIN_TOKEN_SIZE (BR_ID_SIZE + UT_ID_SIZE + UE_UT_KEY_SIZE + UE_BR_KEY_SIZE + NONCE_SIZE)
+
 #ifdef __cplusplus
 }
 #endif

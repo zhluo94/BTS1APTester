@@ -706,6 +706,28 @@ typedef struct ueConfigCompleteInd
    U8 status;
 }ueConfigCompleteInd_t;
 
+/* added for brokerd utelco */
+typedef struct BTAttachParameterToken
+{
+   Bool pres;
+   U8 len; 
+   U8 *token;
+}BTAttachParameterToken;
+
+typedef struct BTAttachParameterUeSig
+{
+   Bool pres;
+   U8 len; 
+   U8 *sig;
+}BTAttachParameterUeSig;
+
+typedef struct BTAttachParameterBrId
+{
+   Bool pres;
+   U8 len; 
+   U8 *brid;
+}BTAttachParameterBrId;
+
 typedef struct ueAttachRequest
 {
    U8 ue_Id;
@@ -720,6 +742,10 @@ typedef struct ueAttachRequest
    prot_CfgOpts protCfgOpts_pr;
    drx_Prm drxParm_pr;
    esm_Info_Trans_flag eti;
+   /* added for brokerd utelco */
+   BTAttachParameterToken btattachparametertoken;
+   BTAttachParameterUeSig btattachparameteruesig;
+   BTAttachParameterBrId  btattachparameterbrid;
 }ueAttachRequest_t;
 
 typedef struct ueAuthReqInd
@@ -753,6 +779,13 @@ typedef struct ueAuthResp
    Bool nonEPSAuthFail; /* Simulate Auth Resp with Cause #26 - non-EPS authentication unacceptable*/
    ueRandRcvd_t randRcvd;
 }ueAuthResp_t;
+
+/* added for brokerd utelco */
+typedef struct ueBtAuthResp
+{
+   U8 ue_Id;
+   //TOADD
+}ueBtAuthResp_t;
 
 typedef struct ueSecModeCmdInd
 {

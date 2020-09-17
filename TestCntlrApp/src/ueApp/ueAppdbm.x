@@ -34,11 +34,16 @@
 #include "ue_app_sec.x"
 #include "ue_usim_auth.h"
 #include "ue_usim_auth.x"
+/* added for brokerd utelco */
+#include <openssl/rsa.h> 
+#include <openssl/ec.h>
+#include <openssl/pem.h>
+#include <openssl/err.h>
+
 
 #define MAX_NUM_OF_UE_CFD 5
 #define MAX_IMSI_LEN 15
 #define MAX_IMEI_LEN 16
-
 
 /* Supported UE Authentication Algorithm structure */
 typedef enum
@@ -257,11 +262,28 @@ typedef struct _ueRabCb
    CmEsmTft          tft;
 } UeRabCb;
 
+/* added for brokerd utelco */
+typedef struct _ueBtInfo
+{ 
+   RSA* ue_private_rsa;
+   EC_KEY* ue_private_ecdsa;
+   EC_KEY* ut_public_ecdsa;
+   EC_KEY* br_public_ecdsa;
+   U8 token[CM_EMM_MAX_BR_TOKEN];
+   U8 brsig[CM_EMM_MAX_BR_SIG];
+   U8 utsig[CM_EMM_MAX_UT_SIG];
+   U8 plain_token[BR_UE_PLAIN_TOKEN_SIZE];
+   int br_id; // broker id
+} UeBtInfo;
+
 typedef struct _ueCb
 {
    UeAppInfo   ueCtxt;       /* Addtional UE Information for this UE */
    UeEmmCb     emmCb;        /* EMM Context for this UE */
    UeEcmCb     ecmCb;        /* ECM Context for this UE */
+   /* added for brokerd uTelco */
+   UeBtInfo    ueBTCtxt; 
+
    /* TRANS List of ESM Cbs. BID range is 5-15 */
    UeEsmCb     *esmTList[CM_ESM_MAX_BEARER_ID];
    /* BID List of ESM Cbs. BID range is 5-15 */
@@ -312,6 +334,11 @@ typedef struct _ueAppCb
    UeCb             *ueCbLst[UE_APP_MAX_NUM_OF_UES];
    U8               numOfUesInLst;
 #endif
+   /* added for brokerd utelco */
+   RSA* ue_private_rsa;
+   EC_KEY* ue_private_ecdsa;
+   EC_KEY* ut_public_ecdsa;
+   EC_KEY* br_public_ecdsa;
 }UeAppCb;
 
 PUBLIC UeAppCb gUeAppCb;

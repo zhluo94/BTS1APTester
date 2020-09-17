@@ -820,6 +820,61 @@ typedef struct cmEmmUeRadCap
 
 }CmEmmUeRadCap;
 
+/* added for brokerd utelco */
+typedef struct CmEmmBTAttachParameterToken
+{
+   U8 pres;
+   U8 len; 
+   U8 *token;
+}CmEmmBTAttachParameterToken;
+
+typedef struct CmEmmBTAttachParameterUeSig
+{
+   U8 pres;
+   U8 len; 
+   U8 *sig;
+}CmEmmBTAttachParameterUeSig;
+
+typedef struct CmEmmBTAttachParameterBrId
+{
+   U8 pres;
+   U8 len; 
+   U8 *brid;
+}CmEmmBTAttachParameterBrId;
+
+/* BT Authentication Parameter TOKEN */
+typedef struct CmEmmBTAuthPrmToken
+{
+   U8 pres;
+   U8 len;
+   U8 val[CM_EMM_MAX_BR_TOKEN];
+}CmEmmBTAuthPrmToken;
+
+/* BT Authentication Parameter BRSIG */
+typedef struct CmEmmBTAuthPrmBrSig
+{
+   U8 pres;
+   U8 len;
+   U8 val[CM_EMM_MAX_BR_SIG];
+}CmEmmBTAuthPrmBrSig;
+
+/* BT Authentication Parameter BRSIG */
+typedef struct CmEmmBTAuthPrmUtSig
+{
+   U8 pres;
+   U8 len;
+   U8 val[CM_EMM_MAX_UT_SIG];
+}CmEmmBTAuthPrmUtSig;
+
+/* BT Authentication Response Parameter RES */
+/* TODO: add more things to it, now it's just a boolean */
+typedef struct cmEmmBtAuthRspPrmRES
+{
+   U8 pres;
+   U8 len;
+   U8 val;
+}CmEmmBtAuthPrmRES;
+
 /* EPS Mobility Management Messages */
 /* Attach Accept */
 /*
@@ -928,6 +983,10 @@ typedef struct cmEmmAttachRequest
   CmEmmMsClsMrk3 msClsMrk3;
   CmEmmSuppCodecLst suppCodecLst;
   CmEmmAddUpdType addUpdType;
+  /* added for brokerd utelco */
+  CmEmmBTAttachParameterToken btattachparametertoken;
+  CmEmmBTAttachParameterUeSig btattachparameteruesig;
+  CmEmmBTAttachParameterBrId  btattachparameterbrid;
 }CmEmmAttachRequest;
 
 
@@ -992,6 +1051,39 @@ typedef struct cmEmmAuthRsp
    CmEmmAuthPrmRES RES;
 }CmEmmAuthRsp;
 
+// added for brokerd utelco
+/* Bt Authentication Request */
+/*
+Information element                           Presence   Format   Length
+Protocol discriminator                          M          V        1/2
+Security header type                            M          V        1/2
+Authentication request message type             M          V        1
+NAS key set identifierASME                      M          V        1/2
+Spare half octet                                M          V        1/2
+BR Authentication parameter TOKEN               M          LV       (128 + 1 or 2)
+BR Authentication parameter BRSIG               M          LV       (50 + 1 or 2)
+BR Authentication parameter UTSIG               M          LV       (50 + 1 or 2)
+*/
+typedef struct CmEmmBtAuthReq
+{
+   CmEmmNasKsi nasKsi;
+   CmEmmBTAuthPrmToken token;
+   CmEmmBTAuthPrmBrSig brsig;
+   CmEmmBTAuthPrmUtSig utsig;
+}CmEmmBtAuthReq;
+
+/* Bt Authentication Response */
+/*
+Information element                  Presence   Format   Length
+Protocol discriminator                 M           V      1/2
+Security header type                   M           V      1/2
+Authentication response message type   M           V      1
+Authentication response parameter      M           LV     1  (boolean indicator for now)
+*/
+typedef struct cmEmmBtAuthRsp
+{
+   CmEmmBtAuthPrmRES RES;
+}CmEmmBtAuthRsp;
 
 /* CS Service Notification */
 /*
@@ -1303,6 +1395,9 @@ typedef struct cmEmmMsg
      CmEmmTAUAccept      tauAcc;
      CmEmmTAUReject      tauRej;
      CmEmmInformation    emmInformation;
+     /* added for brokerd utelco */
+     CmEmmBtAuthReq  btAuthReq;
+     CmEmmBtAuthRsp  btAuthRsp;
    }u;
 } CmEmmMsg;
 

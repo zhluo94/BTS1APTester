@@ -62,6 +62,35 @@ EXTERN S16 ueDbmFetchUe(U8 ueId, PTR *ueCb);
 EXTERN S16 ueDbmDelAllUe(Void);
 EXTERN S16 ueDbmFetchUeWithS_TMSI(UePagingMsg *p_ueMsg, PTR *ueCb);
 
+/* added for brokerd utelco */
+PRIVATE S16 readUeKeys(UeAppCb *ueAppCb)
+{
+  UE_LOG_DEBUG(ueAppCb, "Read UE Keys from files");
+  FILE * pri_ue_rsa_fp = fopen("/home/vagrant/key_files/ue_rsa_pri.pem", "rb");
+  FILE * pri_ue_ec_fp  = fopen("/home/vagrant/key_files/ue_ec_pri.pem", "rb");
+  FILE * pub_ut_ec_fp  = fopen("/home/vagrant/key_files/ut_ec_pub.pem", "rb");
+  FILE * pub_br_ec_fp  = fopen("/home/vagrant/key_files/br_ec_pub.pem", "rb");
+  if(pri_ue_rsa_fp == NULL || pri_ue_ec_fp == NULL || pub_ut_ec_fp == NULL || pub_br_ec_fp == NULL) {
+    RETVALUE(RFAILED);
+  }
+  EVP_PKEY *pkey_ue_rsa_pri, *pkey_ue_ec_pri, *pkey_ut_ec_pub, *pkey_br_ec_pub;
+  
+  pkey_ue_rsa_pri = PEM_read_PrivateKey(pri_ue_rsa_fp, NULL, 0, NULL);
+  pkey_ue_ec_pri = PEM_read_PrivateKey(pri_ue_ec_fp, NULL, 0, NULL); 
+  pkey_ut_ec_pub = PEM_read_PUBKEY(pub_ut_ec_fp, NULL, 0, NULL);
+  pkey_br_ec_pub = PEM_read_PUBKEY(pub_br_ec_fp, NULL, 0, NULL);
+  fclose(pri_ue_rsa_fp);
+  fclose(pri_ue_ec_fp);
+  fclose(pub_ut_ec_fp);
+  fclose(pub_br_ec_fp);
+
+  ueAppCb->ue_private_rsa = EVP_PKEY_get1_RSA(pkey_ue_rsa_pri);
+  ueAppCb->ue_private_ecdsa = EVP_PKEY_get1_EC_KEY(pkey_ue_ec_pri);
+  ueAppCb->ut_public_ecdsa = EVP_PKEY_get1_EC_KEY(pkey_ut_ec_pub);
+  ueAppCb->br_public_ecdsa = EVP_PKEY_get1_EC_KEY(pkey_br_ec_pub);
+  RETVALUE(ROK);
+}
+
 PUBLIC S16 ueDbmInit(Void)
 {
    S16      ret = ROK;
@@ -70,9 +99,14 @@ PUBLIC S16 ueDbmInit(Void)
    UeCb   tmpUeCb;
    UeAppCb *ueAppCb = NULLP;
    UE_GET_CB(ueAppCb); 
+   /* added for brokerd utelco */
+   ret = readUeKeys(ueAppCb);
+#else
+   /* added for brokerd utelco */
+   UeAppCb *ueAppCb = NULLP;
+   UE_GET_CB(ueAppCb); 
+   ret = readUeKeys(ueAppCb);
 #endif
-
-
    /* Initialize ueCb Hash List */
 #ifdef UEHASHLIST
    offset = (U8) ((PTR)&tmpUeCb.ueHashEnt - (PTR)&tmpUeCb);

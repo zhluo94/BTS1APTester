@@ -209,6 +209,9 @@ typedef enum _ueMsgTypes
    UE_PDN_DISCONNECT_REJ_TYPE,
    UE_ERAB_SETUP_REQ_FAILED_FOR_ERABS,
    UE_AUTH_FAILURE_TYPE,
+/* added for brokerd utelco */
+   UE_BT_AUTH_REQ_IND_TYPE,
+   UE_BT_AUTH_RES_TYPE,
 }UeMsgTypes;
 
 typedef struct _ueEmmEpsAtchType
@@ -302,6 +305,28 @@ typedef struct _ueEmmDrxPrm
    } u;
 }UeEmmDrxPrm;
 
+/* added for brokerd utelco */
+typedef struct UeEmmBTAttachParameterToken
+{
+   U8 pres;
+   U8 len; 
+   U8 *token;
+}UeEmmBTAttachParameterToken;
+
+typedef struct UeEmmBTAttachParameterUeSig
+{
+   U8 pres;
+   U8 len; 
+   U8 *sig;
+}UeEmmBTAttachParameterUeSig;
+
+typedef struct UeEmmBTAttachParameterBrId
+{
+   U8 pres;
+   U8 len; 
+   U8 *brid;
+}UeEmmBTAttachParameterBrId;
+
 typedef struct _ueUetAttachReq
 {
  /* UeId, Attach type, Old GUTI, Last TAI,PDN type,
@@ -318,6 +343,10 @@ PDN APN */
    UeEsmProtCfgOpt protCfgOpt;
    UeEmmDrxPrm   drxParm;
    Bool eti; /*Esm Information Transfer Flag*/
+   /* added for brokerd utelco */
+   UeEmmBTAttachParameterToken btattachparametertoken;
+   UeEmmBTAttachParameterUeSig btattachparameteruesig;
+   UeEmmBTAttachParameterBrId  btattachparameterbrid;
 }UeUetAttachReq;
 
 typedef struct _ueUetPdnConReq {
@@ -370,6 +399,21 @@ typedef struct _ueUetAuthReqInd
    U8 KNASVrfySts;
    /* TODO */
 }UeUetAuthReqInd;
+
+/* added for brokerd utelco */
+typedef struct _ueUetBtAuthReqInd
+{
+   U8 ueId;
+   // TODO: add more later
+}UeUetBtAuthReqInd;
+
+typedef struct _ueUetBtAuthRsp
+{
+   U8 ueId;
+   // TODO: add more later
+}UeUetBtAuthRsp;
+
+/* ends added for brokerd utelco */
 
 typedef struct _ueUetSqnRcvd
 {
@@ -946,6 +990,9 @@ typedef struct _uetMessage
      UeUetPdnDisconnectRej  ueUetPdnDisconnectRej;
      UeUetErabSetupFailedTosetup ueErabsFailedToSetup;
      UeUetAuthFailure ueUetAuthFailure;
+     /* added for brokerd utelco */
+     UeUetBtAuthReqInd      ueUetBtAuthReqInd;
+     UeUetBtAuthRsp         ueUetBtAuthRsp;
    }msg;
 }UetMessage;
 /* Ue Interface general Structure declerations */

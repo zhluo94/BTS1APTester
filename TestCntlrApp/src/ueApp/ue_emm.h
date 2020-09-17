@@ -76,7 +76,14 @@ EXTERN "C" {
 #define CM_EMM_IE_ESM_MSG_CONT              0x78
 #define CM_EMM_IE_ADDNL_UPDT_RES            0x0F
 #define CM_EMM_IE_ADDNL_UPDT_TYP            0x0F
-
+// added for brokerd utelco
+#define CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_TOKEN 0x65 /* 0x65 = 101 */
+#define CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_BR_SIG 0x66 /* 0x66 = 102 */
+#define CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_UT_SIG 0x67 /* 0x67 = 103 */
+#define CM_EMM_IE_BT_AUTHENTICATION_RESPONSE_PARAMETER 0x68 /* 0x68 = 104 */
+#define CM_EMM_IE_BT_ATTACH_REQUEST_ATTACH_PARAMETER_TOKEN 0x69 /* 0x69 = 105 */
+#define CM_EMM_IE_BT_ATTACH_REQUEST_ATTACH_PARAMETER_UE_SIG 0x6a /* 0x6a = 106 */
+#define CM_EMM_IE_BT_ATTACH_REQUEST_ATTACH_PARAMETER_BR_ID 0x6b /* 0x6b = 107 */
 
 #define CM_EMM_MAX_IE 20
 #define CM_MAX_EMM_MSG_NAME 35
@@ -125,6 +132,9 @@ EXTERN "C" {
 /* Need to Clarify */
 #define CM_EMM_MSG_SERVICE_REQ   0x65
 #define CM_EMM_MSG_ESM_RSP       0xDA
+// added for brokerd uTelco
+#define CM_EMM_MSG_BROKER_AUTH_REQ 0x70
+#define CM_EMM_MSG_BROKER_AUTH_RSP 0x71
 
 /* EMM Message Index values */
 #define CM_EMM_IDX_ATTACH_ACC    0x00
@@ -159,9 +169,12 @@ EXTERN "C" {
 #define CM_EMM_IDX_TAU_REJ       0x1d
 #define CM_EMM_IDX_TAU_REQ       0x1e
 #define CM_EMM_IDX_UL_NAS_TPT    0x1f
+// added for brokered utelco
+#define CM_EMM_IDX_BT_AUTH_REQ   0x20
+#define CM_EMM_IDX_BT_AUTH_RSP   0x21 
 
-#define CM_EMM_MAX_MSG           0x20
-#define CM_EMM_MAX_MSG_VALUE     0x27
+#define CM_EMM_MAX_MSG           0x22//0x20
+#define CM_EMM_MAX_MSG_VALUE     0x29//0x27
 
 #define CM_EMM_IDX_INVALID       0xff
 
@@ -188,6 +201,10 @@ EXTERN "C" {
 #define CM_EMM_MAX_CODEC_LIST 256
 #define CM_EMM_EPS_BEAR_CTXT_STS_LEN 2
 #define CM_EMM_MAX_NW_NAME_LEN  255
+// added for brokerd utelco
+#define CM_EMM_MAX_BR_TOKEN 128
+#define CM_EMM_MAX_BR_SIG 50
+#define CM_EMM_MAX_UT_SIG 50  
 /* type of coding */
 #define CM_EMM_ENC 0
 #define CM_EMM_DEC 1
@@ -199,9 +216,22 @@ EXTERN "C" {
 /* cm_emm_h_001.main_1: Removed unused macro CM_EMM_GET_COMMON_PROC_EVNT */
 
 /* Message to EDM index map */
+// added first two cases for brokerd telco
 #define CM_EMM_MSGIDXMAP(_msgType, _msgIdx, _coding) \
 do \
 { \
+   if (_msgType == CM_EMM_MSG_BROKER_AUTH_REQ \
+       ) \
+   { \
+      _msgIdx = CM_EMM_IDX_BT_AUTH_REQ; \
+      break; \
+   } \
+   if (_msgType == CM_EMM_MSG_BROKER_AUTH_RSP \
+       ) \
+   { \
+      _msgIdx = CM_EMM_IDX_BT_AUTH_RSP; \
+      break; \
+   } \
    if ((_msgType & 0x3f) >= CM_EMM_MAX_MSG_VALUE) \
    { \
       _msgIdx = CM_EMM_MAX_MSG; \

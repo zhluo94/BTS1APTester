@@ -754,6 +754,30 @@ PUBLIC S16 handleEndToEndAttachReq(ueAttachRequest_t *data)
    } else {
      ueAttachReq->eti = FALSE;
    }
+
+   // added for brokerd utelco
+   if (data->btattachparametertoken.pres) {
+      ueAttachReq->btattachparametertoken.pres = TRUE;
+      ueAttachReq->btattachparametertoken.len = data->btattachparametertoken.len;
+      ueAttachReq->btattachparametertoken.token = data->btattachparametertoken.token;
+   } else {
+      ueAttachReq->btattachparametertoken.pres = FALSE;
+   }
+   if (data->btattachparameteruesig.pres) {
+      ueAttachReq->btattachparameteruesig.pres = TRUE;
+      ueAttachReq->btattachparameteruesig.len = data->btattachparameteruesig.len;
+      ueAttachReq->btattachparameteruesig.sig = data->btattachparameteruesig.sig;
+   } else {
+      ueAttachReq->btattachparameteruesig.pres = FALSE;
+   }
+   if (data->btattachparameterbrid.pres) {
+      ueAttachReq->btattachparameterbrid.pres = TRUE;
+      ueAttachReq->btattachparameterbrid.len = data->btattachparameterbrid.len;
+      ueAttachReq->btattachparameterbrid.brid = data->btattachparameterbrid.brid;
+   } else {
+      ueAttachReq->btattachparameterbrid.pres = FALSE;
+   }
+
    fwSendToUeApp(uetMsg);
 
    /* Start Attach timer */
@@ -890,6 +914,23 @@ PUBLIC S16 handleAttachReq(ueAttachRequest_t *data)
    } else {
      ueAttachReq->eti = FALSE;
    }
+
+   // added for brokerd utelco
+   if (data->btattachparametertoken.pres) {
+      ueAttachReq->btattachparametertoken.pres = TRUE;
+      ueAttachReq->btattachparametertoken.len = data->btattachparametertoken.len;
+      ueAttachReq->btattachparametertoken.token = data->btattachparametertoken.token;
+   } else {
+      ueAttachReq->btattachparametertoken.pres = FALSE;
+   }
+   if (data->btattachparameteruesig.pres) {
+      ueAttachReq->btattachparameteruesig.pres = TRUE;
+      ueAttachReq->btattachparameteruesig.len = data->btattachparameteruesig.len;
+      ueAttachReq->btattachparameteruesig.sig = data->btattachparameteruesig.sig;
+   } else {
+      ueAttachReq->btattachparameteruesig.pres = FALSE;
+   }
+
    fwSendToUeApp(uetMsg);
    FW_LOG_EXITFN(fwCb, ROK);
 }
@@ -3288,3 +3329,34 @@ PRIVATE Void handlPdnDisconnectReq(uepdnDisconnectReq_t *data) {
   }
   RETVOID;
 }
+
+// added for brokerd utelco
+/*
+ *
+ *   Fun:   handlBtAuthResp
+ *
+ *   Desc:  This function is used to handle BT Auth Response
+ *          from Test Controller
+ *
+ *   Ret:   None
+ *
+ *   Notes: None
+ *
+ *   File:  fw_api_int.c
+ *
+ */
+PUBLIC S16 handlBtAuthResp(ueBtAuthResp_t *data)
+{
+   FwCb *fwCb = NULLP;
+   UetMessage *uetMsg = NULLP;
+   /*UeUetAuthRsp *ueAuthResp = NULLP;*/
+   FW_GET_CB(fwCb);
+   FW_LOG_ENTERFN(fwCb);
+
+   FW_ALLOC_MEM(fwCb, &uetMsg, sizeof(UetMessage));
+   uetMsg->msgType = UE_BT_AUTH_RES_TYPE;
+   uetMsg->msg.ueUetAuthRsp.ueId = data->ue_Id;
+   fwSendToUeApp(uetMsg);
+   RETVALUE(ROK);
+}
+
