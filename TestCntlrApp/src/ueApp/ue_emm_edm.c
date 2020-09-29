@@ -1149,10 +1149,7 @@ U32 len;
    }
 
    /* get the message index */
-   printf("Try to get message idex for %d\n", msg->msgId);
    CM_EMM_MSGIDXMAP(msg->msgId, msgIdx, CM_EMM_DEC);
-   printf("message idex for %d is %d\n", msg->msgId, msgIdx);
-
 
    if (msgIdx >= CM_EMM_MAX_MSG)
    {
@@ -10279,7 +10276,6 @@ U32 len;
    CmEmmBTAuthPrmToken *token;
    U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecBtAuthToken)
-   printf("Decode BT Auth Token with ie len %d\n", len);
 
       switch(msg->msgId)
       {
@@ -10301,7 +10297,6 @@ U32 len;
 
    /* Length */
    token->len = len/8;
-   printf("Token length: %d\n", token->len);
 
    int i = 0;
    for(i; i < token->len; i++) {
@@ -10345,8 +10340,6 @@ U32 len;
    CmEmmBTAuthPrmBrSig *brsig;
    U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecBtAuthBrSig)
-   printf("Decode BT Auth Br sig\n");
-
 
       switch(msg->msgId)
       {
@@ -10367,7 +10360,6 @@ U32 len;
 
    /* Length */
    brsig->len = len/8;
-   printf("Brsig length: %d\n", brsig->len);
 
    int i = 0;
    for(i; i < brsig->len; i++) {
@@ -10411,7 +10403,6 @@ U32 len;
    CmEmmBTAuthPrmUtSig *utsig;
    U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecBtAuthUtSig)
-   printf("Decode BT Auth Ut sig\n");   
 
       switch(msg->msgId)
       {
@@ -10432,7 +10423,6 @@ U32 len;
 
    /* Length */
    utsig->len = len/8;
-   printf("utsig length: %d\n", utsig->len);
 
    int i = 0;
    for(i; i < utsig->len; i++) {

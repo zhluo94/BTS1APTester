@@ -542,6 +542,36 @@ PUBLIC S16 handlAuthResp(ueAuthResp_t *data)
    RETVALUE(ROK);
 }
 
+// added for brokerd utelco
+/*
+ *
+ *   Fun:   handlBtAuthResp
+ *
+ *   Desc:  This function is used to handle BT Auth Response
+ *          from Test Controller
+ *
+ *   Ret:   None
+ *
+ *   Notes: None
+ *
+ *   File:  fw_api_int.c
+ *
+ */
+PUBLIC S16 handlBtAuthResp(ueBtAuthResp_t *data)
+{
+   FwCb *fwCb = NULLP;
+   UetMessage *uetMsg = NULLP;
+   /*UeUetAuthRsp *ueAuthResp = NULLP;*/
+   FW_GET_CB(fwCb);
+   FW_LOG_ENTERFN(fwCb);
+
+   FW_ALLOC_MEM(fwCb, &uetMsg, sizeof(UetMessage));
+   uetMsg->msgType = UE_BT_AUTH_RES_TYPE;
+   uetMsg->msg.ueUetAuthRsp.ueId = data->ue_Id;
+   fwSendToUeApp(uetMsg);
+   RETVALUE(ROK);
+}
+
 /*
  *   Fun:   handlAuthFailure
  *
@@ -930,7 +960,14 @@ PUBLIC S16 handleAttachReq(ueAttachRequest_t *data)
    } else {
       ueAttachReq->btattachparameteruesig.pres = FALSE;
    }
-
+   if (data->btattachparameterbrid.pres) {
+      ueAttachReq->btattachparameterbrid.pres = TRUE;
+      ueAttachReq->btattachparameterbrid.len = data->btattachparameterbrid.len;
+      ueAttachReq->btattachparameterbrid.brid = data->btattachparameterbrid.brid;
+   } else {
+      ueAttachReq->btattachparameterbrid.pres = FALSE;
+   }
+   
    fwSendToUeApp(uetMsg);
    FW_LOG_EXITFN(fwCb, ROK);
 }
@@ -1956,6 +1993,22 @@ PUBLIC S16 tfwApi
          else
          {
             FW_LOG_ERROR(fwCb, "FAILED TO SEND UE_AUTH_RESP: "\
+                  "ENBAPP IS NOT UP");
+            ret = RFAILED;
+         }
+         break;
+      }
+      // added for brokerd utelco
+      case UE_BT_AUTH_RESP:
+      {
+         FW_LOG_DEBUG(fwCb, "UE_BT_AUTH_RESP");
+         if (fwCb->nbState == ENB_IS_UP)
+         {
+            handlBtAuthResp((ueBtAuthResp_t*)msg);
+         }
+         else
+         {
+            FW_LOG_ERROR(fwCb, "FAILED TO SEND UE_BT_AUTH_RESP: "\
                   "ENBAPP IS NOT UP");
             ret = RFAILED;
          }
@@ -3329,34 +3382,3 @@ PRIVATE Void handlPdnDisconnectReq(uepdnDisconnectReq_t *data) {
   }
   RETVOID;
 }
-
-// added for brokerd utelco
-/*
- *
- *   Fun:   handlBtAuthResp
- *
- *   Desc:  This function is used to handle BT Auth Response
- *          from Test Controller
- *
- *   Ret:   None
- *
- *   Notes: None
- *
- *   File:  fw_api_int.c
- *
- */
-PUBLIC S16 handlBtAuthResp(ueBtAuthResp_t *data)
-{
-   FwCb *fwCb = NULLP;
-   UetMessage *uetMsg = NULLP;
-   /*UeUetAuthRsp *ueAuthResp = NULLP;*/
-   FW_GET_CB(fwCb);
-   FW_LOG_ENTERFN(fwCb);
-
-   FW_ALLOC_MEM(fwCb, &uetMsg, sizeof(UetMessage));
-   uetMsg->msgType = UE_BT_AUTH_RES_TYPE;
-   uetMsg->msg.ueUetAuthRsp.ueId = data->ue_Id;
-   fwSendToUeApp(uetMsg);
-   RETVALUE(ROK);
-}
-

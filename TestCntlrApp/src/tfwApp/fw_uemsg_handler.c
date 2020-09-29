@@ -123,7 +123,7 @@ PRIVATE Void sendUeErabSetupReqFailedForBearers( UetMessage *erab_setup_req_fail
 
 /* added for brokerd uTelco */
 PUBLIC S16 ueBtAuthReqInd(Pst *pst,UetMessage *uetBtAuthReqInd);
-
+PUBLIC S16 sendUeBtAuthReqIndToTstCntlr(UetMessage *uetMsg);
 
 /*
 *        Fun:  sendUeAppConfigRespToTstCntlr
@@ -647,12 +647,45 @@ PUBLIC S16 ueBtAuthReqInd
       else
       {
          //TODO: focus on e2e attach first
-         //sendUeAuthReqIndToTstCntlr(uetBtAuthReqInd);
+         sendUeBtAuthReqIndToTstCntlr(uetBtAuthReqInd);
       }
    }
 
    FW_LOG_EXITFN(fwCb, ret);
 } /* ueBTAuthReqInd */
+
+/*
+*        Fun:   sendUeBtAuthReqIndToTstCntlr
+*
+*        Desc:  Sends BT Auth Request indications.to TC stub
+*
+*        Ret:   ROK
+*
+*        Notes: None
+*
+*        File: fw_uemsg_handler.c
+*
+*/
+PUBLIC S16 sendUeBtAuthReqIndToTstCntlr(UetMessage *uetMsg)
+{
+   S16 ret = ROK;
+   FwCb *fwCb = NULLP;
+   ueBtAuthReqInd_t *tfwBtAuthReq = NULLP;
+
+   FW_GET_CB(fwCb);
+   FW_LOG_ENTERFN(fwCb);
+
+   FW_ALLOC_MEM(fwCb, &tfwBtAuthReq, sizeof(ueBtAuthReqInd_t));
+   cmMemset((U8*)tfwBtAuthReq, 0, sizeof(ueBtAuthReqInd_t));
+
+   tfwBtAuthReq->ue_Id = uetMsg->msg.ueUetBtAuthReqInd.ueId;
+
+   (fwCb->testConrollerCallBack)(UE_BT_AUTH_REQ_IND, tfwBtAuthReq,
+                                  sizeof(ueBtAuthReqInd_t));
+
+   FW_FREE_MEM(fwCb, tfwBtAuthReq, sizeof(ueBtAuthReqInd_t));
+   FW_LOG_EXITFN(fwCb, ret);
+} /* sendUeBtAuthReqIndToTstCntlr */
 
 
 /*
