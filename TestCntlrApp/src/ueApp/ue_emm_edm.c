@@ -211,6 +211,13 @@ PRIVATE S16 cmEmmDecBtAuthUtSig ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len
 
 PRIVATE S16 cmEmmEncBtRES ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U16 *len));
 PRIVATE S16 cmEmmDecBtRES ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
+// added for UR
+PRIVATE S16 cmEmmEncUrRepId ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U16 *len));
+PRIVATE S16 cmEmmEncUrUeSig ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U16 *len));
+PRIVATE S16 cmEmmEncUrUeRep ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U16 *len));
+PRIVATE S16 cmEmmDecUrRepId ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
+PRIVATE S16 cmEmmDecUrUeRep ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
+PRIVATE S16 cmEmmDecUrUeSig ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
 #endif /* CM_MME*/
 
 /* Bit masks used for set/get bit range macros */
@@ -276,7 +283,10 @@ PRIVATE S8 msgName[CM_EMM_MAX_MSG_VALUE][CM_MAX_EMM_MSG_NAME] =
    "Uplink NAS Transport",
    /* added for brokerd utelco */
    "BT Authentication Request",
-   "BT Authentication Response"
+   "BT Authentication Response",
+   /* added for UR */
+   "Usage Report Request",
+   "Usage Report Response"
 };
 #endif /* DEBUGP */
 
@@ -324,7 +334,10 @@ PRIVATE U8 CmEmmMsgToIdxMap[CM_EMM_MAX_MSG_VALUE] =
    CM_EMM_IDX_INVALID,
 // added for brokerd utelco
    CM_EMM_IDX_BT_AUTH_REQ,
-   CM_EMM_IDX_BT_AUTH_RSP
+   CM_EMM_IDX_BT_AUTH_RSP,
+// added for UR
+   CM_EMM_IDX_UR_REQ,
+   CM_EMM_IDX_UR_RSP
 };
 
 #ifdef CM_MME
@@ -635,6 +648,19 @@ CmEmmEdmMsgFormat emmMsgTab[CM_EMM_MAX_MSG][CM_EMM_MAX_IE] =
    {
       {0, EDM_PRES_MANDATORY, EDM_FMTLV, TRUE, 0,
          NULLP, NULLP, cmEmmDecBtRES}
+   },
+   /* added for UR */
+   /* UR Request */ 
+   {
+      {CM_EMM_IE_USAGE_REPORT_PARAMETER_REPORT_ID, EDM_PRES_MANDATORY, EDM_FMTTLV, TRUE, 0,
+         NULLP, cmEmmEncUrRepId, NULLP}
+   },
+   /* UR Response */
+   {
+      {CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_REPORT, EDM_PRES_MANDATORY, EDM_FMTTLV, FALSE, 0,
+         NULLP, NULLP, cmEmmDecUrUeRep},
+      {CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_SIG, EDM_PRES_MANDATORY, EDM_FMTTLV, TRUE, 0,
+         NULLP, NULLP, cmEmmDecUrUeSig}
    },
 };
 
@@ -981,6 +1007,19 @@ CmEmmEdmMsgFormat emmMsgTab[CM_EMM_MAX_MSG][CM_EMM_MAX_IE] =
    {
       {0, EDM_PRES_MANDATORY, EDM_FMTLV, TRUE, 0,
          NULLP, cmEmmEncBtRES, cmEmmDecBtRES}
+   },
+   /* added for UR */
+   /* UR Request */ 
+   {
+      {CM_EMM_IE_USAGE_REPORT_PARAMETER_REPORT_ID, EDM_PRES_MANDATORY, EDM_FMTTLV, TRUE, 0,
+         NULLP, cmEmmEncUrRepId, cmEmmDecUrRepId}
+   },
+   /* UR Response */
+   {
+      {CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_REPORT, EDM_PRES_MANDATORY, EDM_FMTTLV, FALSE, 0,
+         NULLP, cmEmmEncUrUeRep, cmEmmDecUrUeRep},
+      {CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_SIG, EDM_PRES_MANDATORY, EDM_FMTTLV, TRUE, 0,
+         NULLP, cmEmmEncUrUeSig, cmEmmDecUrUeSig}
    },
 
 };
@@ -9978,7 +10017,7 @@ U16 *len;
    }
 
    /* Encode IE Id */
-   buf[(*indx)++] = CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_BR_SIG;
+   buf[(*indx)++] = CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_UT_SIG;
    /* Encode Length */
    buf[(*indx)++] = utsig->len;
 
@@ -10053,7 +10092,205 @@ U16 *len;
    *len = btres->len + 2;
 
    RETVALUE(ROK);
-} /* cmEmmEncBtRES */
+} /* cmEmmEncBtRES 
+
+/*
+ *
+ *       Fun:   cmEmmEncUrRepId
+ *
+ *       Desc:  This function 
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+         File:  ue_emm_edm.c
+ *
+ */
+#ifdef ANSI
+PRIVATE S16 cmEmmEncUrRepId
+(
+U8 *buf,
+U32 *indx,
+CmEmmMsg *msg,
+U16 *len
+)
+#else
+PRIVATE S16 cmEmmEncUrRepId (buf, indx, msg, len)
+U8 *buf;
+U32 *indx;
+CmEmmMsg *msg;
+U16 *len;
+#endif
+{
+   CmEmmUrReqPrmRepId *repid;
+   EDM_TRC2(cmEmmEncUrRepId)
+
+      switch(msg->msgId)
+      {
+         case CM_EMM_MSG_USAGE_REPORT_REQ:
+            {
+               repid = &msg->u.UrReq.repid;
+               break;
+            }
+         default:
+            {
+               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
+                        msg->msgId));
+               RETVALUE(RFAILED);
+            }
+      }
+
+   if (!repid->pres)
+   {
+      RETVALUE(ROK);
+   }
+
+   /* Encode IE Id */
+   buf[(*indx)++] = CM_EMM_IE_USAGE_REPORT_PARAMETER_REPORT_ID;
+   /* Encode Length */
+   buf[(*indx)++] = repid->len;
+
+   int i = 0;
+   for(i; i < repid->len; i++) {
+    buf[(*indx)++] = repid->val[i];
+   }
+   *len = repid->len + 2;
+
+   RETVALUE(ROK);
+} /* cmEmmEncUrRepId */
+
+/*
+ *
+ *       Fun:   cmEmmEncUrUeRep
+ *
+ *       Desc:  This function 
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+         File:  ue_emm_edm.c
+ *
+ */
+#ifdef ANSI
+PRIVATE S16 cmEmmEncUrUeRep
+(
+U8 *buf,
+U32 *indx,
+CmEmmMsg *msg,
+U16 *len
+)
+#else
+PRIVATE S16 cmEmmEncUrUeRep (buf, indx, msg, len)
+U8 *buf;
+U32 *indx;
+CmEmmMsg *msg;
+U16 *len;
+#endif
+{
+   CmEmmUrRspPrmUeRep *uerep;
+   EDM_TRC2(cmEmmEncUrUeRep)
+
+      switch(msg->msgId)
+      {
+         case CM_EMM_MSG_USAGE_REPORT_RSP:
+            {
+               uerep = &msg->u.UrRsp.uerep;
+               break;
+            }
+         default:
+            {
+               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
+                        msg->msgId));
+               RETVALUE(RFAILED);
+            }
+      }
+
+   if (!uerep->pres)
+   {
+      RETVALUE(ROK);
+   }
+
+   /* Encode IE Id */
+   buf[(*indx)++] = CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_REPORT;
+   /* Encode Length */
+   buf[(*indx)++] = uerep->len;
+
+   int i = 0;
+   for(i; i < uerep->len; i++) {
+    buf[(*indx)++] = uerep->val[i];
+   }
+   *len = uerep->len + 2;
+
+   RETVALUE(ROK);
+} /* cmEmmEncUrUeRep */
+
+/*
+ *
+ *       Fun:   cmEmmEncUrUeSig
+ *
+ *       Desc:  This function 
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+         File:  ue_emm_edm.c
+ *
+ */
+#ifdef ANSI
+PRIVATE S16 cmEmmEncUrUeSig
+(
+U8 *buf,
+U32 *indx,
+CmEmmMsg *msg,
+U16 *len
+)
+#else
+PRIVATE S16 cmEmmEncUrUeSig (buf, indx, msg, len)
+U8 *buf;
+U32 *indx;
+CmEmmMsg *msg;
+U16 *len;
+#endif
+{
+   CmEmmUrRspPrmUeSig *uesig;
+   EDM_TRC2(cmEmmEncUrUeSig)
+
+      switch(msg->msgId)
+      {
+         case CM_EMM_MSG_USAGE_REPORT_RSP:
+            {
+               uesig = &msg->u.UrRsp.uesig;
+               break;
+            }
+         default:
+            {
+               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
+                        msg->msgId));
+               RETVALUE(RFAILED);
+            }
+      }
+
+   if (!uesig->pres)
+   {
+      RETVALUE(ROK);
+   }
+
+   /* Encode IE Id */
+   buf[(*indx)++] = CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_SIG;
+   /* Encode Length */
+   buf[(*indx)++] = uesig->len;
+
+   int i = 0;
+   for(i; i < uesig->len; i++) {
+    buf[(*indx)++] = uesig->val[i];
+   }
+   *len = uesig->len + 2;
+
+   RETVALUE(ROK);
+} /* cmEmmEncUrUeSig */
 
 /*
  *
@@ -10085,7 +10322,6 @@ U32 len;
 #endif
 {
    CmEmmBTAttachParameterToken *btattachparametertoken;
-   U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecAttachToken)
 
       switch(msg->msgId)
@@ -10148,7 +10384,6 @@ U32 len;
 #endif
 {
    CmEmmBTAttachParameterUeSig *btattachparameteruesig;
-   U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecAttachUeSig)
 
       switch(msg->msgId)
@@ -10211,7 +10446,6 @@ U32 len;
 #endif
 {
    CmEmmBTAttachParameterBrId *btattachparameterbrid;
-   U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecAttachBrId)
 
       switch(msg->msgId)
@@ -10274,7 +10508,6 @@ U32 len;
 #endif
 {
    CmEmmBTAuthPrmToken *token;
-   U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecBtAuthToken)
 
       switch(msg->msgId)
@@ -10338,7 +10571,6 @@ U32 len;
 #endif
 {
    CmEmmBTAuthPrmBrSig *brsig;
-   U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecBtAuthBrSig)
 
       switch(msg->msgId)
@@ -10401,7 +10633,6 @@ U32 len;
 #endif
 {
    CmEmmBTAuthPrmUtSig *utsig;
-   U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecBtAuthUtSig)
 
       switch(msg->msgId)
@@ -10463,7 +10694,6 @@ U32 len;
 #endif
 {
    CmEmmBtAuthPrmRES *btres;
-   U8 cdcIdx = 0;
    EDM_TRC2(cmEmmDecBtRES)
 
       switch(msg->msgId)
@@ -10492,6 +10722,189 @@ U32 len;
    RETVALUE(ROK);
 
 } /* cmEmmDecBtRES */
+
+/*
+ *
+ *       Fun:   cmEmmDecUrRepId
+ *
+ *       Desc:  This function 
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+         File:  ue_emm_edm.c
+ *
+ */
+#ifdef ANSI
+PRIVATE S16 cmEmmDecUrRepId
+(
+U8 *buf,
+U32 *indx,
+CmEmmMsg *msg,
+U32 len
+)
+#else
+PRIVATE S16 cmEmmDecUrRepId (buf, indx, msg, len)
+U8 *buf;
+U32 *indx;
+CmEmmMsg *msg;
+U32 len;
+#endif
+{
+   CmEmmUrReqPrmRepId *repid;
+   EDM_TRC2(cmEmmDecUrRepId)
+
+      switch(msg->msgId)
+      {
+         case CM_EMM_MSG_USAGE_REPORT_REQ:
+            {
+               repid = &msg->u.UrReq.repid;
+               break;
+            }
+         default:
+            {
+               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
+                        msg->msgId));
+               RETVALUE(RFAILED);
+            }
+      }
+
+   repid->pres = TRUE;
+
+   /* Length */
+   repid->len = len/8;
+
+   int i = 0;
+   for(i; i < repid->len; i++) {
+    repid->val[i] = buf[(*indx)++];
+   }
+
+   RETVALUE(ROK);
+
+} /* cmEmmDecUrRepId */
+
+/*
+ *
+ *       Fun:   cmEmmDecUrUeRep
+ *
+ *       Desc:  This function 
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+         File:  ue_emm_edm.c
+ *
+ */
+#ifdef ANSI
+PRIVATE S16 cmEmmDecUrUeRep
+(
+U8 *buf,
+U32 *indx,
+CmEmmMsg *msg,
+U32 len
+)
+#else
+PRIVATE S16 cmEmmDecUrUeRep (buf, indx, msg, len)
+U8 *buf;
+U32 *indx;
+CmEmmMsg *msg;
+U32 len;
+#endif
+{
+   CmEmmUrRspPrmUeRep *uerep;
+   EDM_TRC2(cmEmmDecUrUeRep)
+
+      switch(msg->msgId)
+      {
+         case CM_EMM_MSG_USAGE_REPORT_RSP:
+            {
+               uerep = &msg->u.UrRsp.uerep;
+               break;
+            }
+         default:
+            {
+               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
+                        msg->msgId));
+               RETVALUE(RFAILED);
+            }
+      }
+
+   uerep->pres = TRUE;
+
+   /* Length */
+   uerep->len = len/8;
+
+   int i = 0;
+   for(i; i < uerep->len; i++) {
+    uerep->val[i] = buf[(*indx)++];
+   }
+
+   RETVALUE(ROK);
+
+} /* cmEmmDecUrUeRep */
+
+/*
+ *
+ *       Fun:   cmEmmDecUrUeSig
+ *
+ *       Desc:  This function 
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+         File:  ue_emm_edm.c
+ *
+ */
+#ifdef ANSI
+PRIVATE S16 cmEmmDecUrUeSig
+(
+U8 *buf,
+U32 *indx,
+CmEmmMsg *msg,
+U32 len
+)
+#else
+PRIVATE S16 cmEmmDecUrUeSig (buf, indx, msg, len)
+U8 *buf;
+U32 *indx;
+CmEmmMsg *msg;
+U32 len;
+#endif
+{
+   CmEmmUrRspPrmUeSig *uesig;
+   EDM_TRC2(cmEmmDecUrUeSig)
+
+      switch(msg->msgId)
+      {
+         case CM_EMM_MSG_USAGE_REPORT_RSP:
+            {
+               uesig = &msg->u.UrRsp.uesig;
+               break;
+            }
+         default:
+            {
+               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
+                        msg->msgId));
+               RETVALUE(RFAILED);
+            }
+      }
+
+   uesig->pres = TRUE;
+
+   /* Length */
+   uesig->len = len/8;
+
+   int i = 0;
+   for(i; i < uesig->len; i++) {
+    uesig->val[i] = buf[(*indx)++];
+   }
+
+   RETVALUE(ROK);
+
+} /* cmEmmDecUrUeSig */
 
 #ifdef __cplusplus
 }

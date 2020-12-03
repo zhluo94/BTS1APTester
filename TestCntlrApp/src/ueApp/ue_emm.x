@@ -875,6 +875,32 @@ typedef struct cmEmmBtAuthRspPrmRES
    U8 val;
 }CmEmmBtAuthPrmRES;
 
+/* UR Request Parameter REPID */
+typedef struct CmEmmUrReqPrmRepId
+{
+   U8 pres;
+   U8 len;
+   U8 val[CM_EMM_MAX_REP_ID];
+}CmEmmUrReqPrmRepId;
+
+/* UR Response Parameter UEREP */
+typedef struct CmEmmUrRspPrmUeRep
+{
+   U8 pres;
+   U8 len;
+   U8 val[CM_EMM_MAX_UE_REP];
+}CmEmmUrRspPrmUeRep;
+
+/* UR Response Parameter UESIG */
+typedef struct CmEmmUrRspPrmUeSig
+{
+   U8 pres;
+   U8 len;
+   U8 val[CM_EMM_MAX_UE_SIG];
+}CmEmmUrRspPrmUeSig;
+
+/* end added for brokerd utelco */
+
 /* EPS Mobility Management Messages */
 /* Attach Accept */
 /*
@@ -1084,6 +1110,35 @@ typedef struct cmEmmBtAuthRsp
 {
    CmEmmBtAuthPrmRES RES;
 }CmEmmBtAuthRsp;
+
+// added for UR 
+/* UR Request */
+/*
+Information element                  Presence   Format   Length
+Protocol discriminator                 M           V      1/2
+Security header type                   M           V      1/2
+UR Request message type                M           V      1
+UR Request parameter REPORT ID         M           TLV    4 
+*/
+typedef struct CmEmmUrReq
+{
+   CmEmmUrReqPrmRepId repid;
+}CmEmmUrReq;
+
+/* UR Response */
+/*
+Information element                  Presence   Format   Length
+Protocol discriminator                 M           V      1/2
+Security header type                   M           V      1/2
+UR Response message type               M           V      1
+UR Response parameter UE REPORT        M           TLV    (128 + 1 or 2) 
+UR Response parameter UE SIG           M           TLV    (50 + 1 or 2) 
+*/
+typedef struct CmEmmUrRsp
+{
+   CmEmmUrRspPrmUeRep uerep;
+   CmEmmUrRspPrmUeSig uesig;
+}CmEmmUrRsp;
 
 /* CS Service Notification */
 /*
@@ -1398,6 +1453,9 @@ typedef struct cmEmmMsg
      /* added for brokerd utelco */
      CmEmmBtAuthReq  btAuthReq;
      CmEmmBtAuthRsp  btAuthRsp;
+     /* added for UR */
+     CmEmmUrReq  UrReq;
+     CmEmmUrRsp  UrRsp;
    }u;
 } CmEmmMsg;
 

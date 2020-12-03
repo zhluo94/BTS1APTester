@@ -232,6 +232,13 @@ PRIVATE S16 ueAppUtlBldBtAuthResp(UeCb*, CmNasEvnt**, CmEmmBtAuthPrmRES*);
 PRIVATE S16 ueProcUeBtAuthResp(UetMessage *tfwMsg, Pst *pst);
 PRIVATE S16 ueAppSndBtAuthResponse(UeCb *ueCb);
 PRIVATE S16 ueAuthBrUtAddKeys(UeBtInfo* ueBTCtxt, UeAppSecCtxtCb* secCtxt);
+// added for UR
+PRIVATE S16 ueAppEmmHndlInUrReq(CmNasEvnt *evnt, UeCb *ueCb);
+PRIVATE S16 ueBldUrReqIndMsgToTfw(UetMessage *tfwMsg, UeCb *ueCb);
+PRIVATE S16 ueProcUeUrResp(UetMessage *tfwMsg, Pst *pst);
+PRIVATE S16 ueAppSndUrResponse(UeCb *ueCb);
+PRIVATE S16 ueAppUtlBldUrResp(UeCb *ueCb, CmNasEvnt **ueEvt, CmEmmUrRspPrmUeRep *UrRspPrmUeRep, CmEmmUrRspPrmUeSig *UrRspPrmUeSig);
+PRIVATE S16 ueAppUtlGetUrRep(UeCb *ueCb, CmEmmUrRspPrmUeRep *UrRspPrmUeRep, CmEmmUrRspPrmUeSig *UrRspPrmUeSig);
 
 
 PRIVATE S16 ueAppGetDrb(UeCb *ueCb, U8 *drb)
@@ -551,8 +558,6 @@ PRIVATE S16 ueAppSndAuthResponse(UeCb *ueCb, UeSQN sqnRcvd,UeSQN maxSqnRcvd,UeRa
    if (ROK != ret)
    {
       UE_LOG_DEBUG(ueAppCb, "Authentication Failed, Failure cause is %d",
-            ueCb->authFlr.cause.cause);
-      printf("Authentication Failed, Failure cause is %d\n",
             ueCb->authFlr.cause.cause);
       ueCb->authFlr.cause.pres = TRUE;
       if(UE_APP_USIM_SYNC_FAILURE == ueCb->authFlr.cause.cause)
@@ -2075,6 +2080,7 @@ PRIVATE S16 ueProcUeAttachReq(UetMessage *p_ueMsg, Pst *pst)
       ueCb->ueBTCtxt.ue_private_ecdsa = ueAppCb->ue_private_ecdsa;
       ueCb->ueBTCtxt.ut_public_ecdsa = ueAppCb->ut_public_ecdsa;
       ueCb->ueBTCtxt.br_public_ecdsa = ueAppCb->br_public_ecdsa;
+      ueCb->ueBTCtxt.br_public_rsa = ueAppCb->br_public_rsa;
    }
 
    ret = ueAppUtlBldAttachReq(ueCb,&attachReqEvnt, mIdType, useOldSecCtxt, epsAtchType,\
@@ -5587,6 +5593,14 @@ PUBLIC S16 ueUiProcessTfwMsg(UetMessage *p_ueMsg, Pst *pst)
          ret = ueProcUeBtAuthResp(p_ueMsg, pst);
          break;
       }
+      // added for UR
+      case UE_UR_RES_TYPE:
+      {
+         UE_LOG_DEBUG(ueAppCb, "RECIEVED UE USAGE RESPONSE RESPONSE "\
+               "MESSAGE FROM TFWAPP");
+         ret = ueProcUeUrResp(p_ueMsg, pst);
+         break;
+      }
       default:
       {
          UE_LOG_ERROR(ueAppCb, "Recieved Invalid message of type: %d",
@@ -5665,6 +5679,7 @@ PRIVATE S16 ueBldAuthReqIndMsgToTfw(UetMessage *tfwMsg, UeCb *ueCb)
    UE_LOG_EXITFN(ueAppCb, ret);
 } /* End of ueBldAuthReqIndMsgToTfw */
 
+// added for brokerd uTelco
 /*
  *
  *       Fun: ueBldBtAuthReqIndMsgToTfw
@@ -5690,6 +5705,32 @@ PRIVATE S16 ueBldBtAuthReqIndMsgToTfw(UetMessage *tfwMsg, UeCb *ueCb)
    tfwMsg->msg.ueUetBtAuthReqInd.ueId = ueCb->ueId;
    UE_LOG_EXITFN(ueAppCb, ret);
 } /* End of ueBldBtAuthReqIndMsgToTfw */   
+
+/*
+ *
+ *       Fun: ueBldUrReqIndMsgToTfw
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueBldUrReqIndMsgToTfw(UetMessage *tfwMsg, UeCb *ueCb)
+{
+   S16 ret = ROK;
+   UeAppCb *ueAppCb = NULLP;
+   UE_GET_CB(ueAppCb);
+
+   UE_LOG_ENTERFN(ueAppCb);
+   UE_LOG_DEBUG(ueAppCb, "Building Usage Report Request Indication");
+   tfwMsg->msgType = UE_UR_REQ_IND_TYPE; 
+   tfwMsg->msg.ueUetUrReqInd.ueId = ueCb->ueId;
+   UE_LOG_EXITFN(ueAppCb, ret);
+} /* End of ueBldUrReqIndMsgToTfw */  
 
 /*
  *
@@ -6418,6 +6459,25 @@ PRIVATE S16 ueAppRcvEmmMsg
          }
          break;
       }
+      // added for UR
+      case CM_EMM_MSG_USAGE_REPORT_REQ:
+      {
+         CmEmmUrReq *UrReq = &(evnt->m.emmEvnt->u.UrReq);
+         cmMemcpy(ueCb->repId, UrReq->repid.val, CM_EMM_MAX_REP_ID);
+
+         UE_LOG_DEBUG(ueAppCb, "Sending Usage Report Request Indication to Test "\
+               "Controller");
+         tfwMsg = (UetMessage*)ueAlloc(sizeof(UetMessage));
+         ret = ueBldUrReqIndMsgToTfw(tfwMsg, ueCb);
+
+         ret = ueSendToTfwApp(tfwMsg, &ueAppCb->fwPst);
+         if (ret != ROK)
+         {
+            UE_LOG_ERROR(ueAppCb, "Sending Usage Report Request "\
+                  "Indication to TFWAPP failed");
+         }
+         break;
+      }
 
       case CM_EMM_MSG_SEC_MODE_CMD:
       {
@@ -6836,6 +6896,35 @@ PRIVATE S16 ueAppEmmHndlInBtAuthReq(CmNasEvnt *evnt, UeCb *ueCb)
    UE_LOG_ENTERFN(ueAppCb);
 
    UE_LOG_DEBUG(ueAppCb, "Handling Incoming BT Authenticatin request message");
+   /*send message to USER*/
+   ret = ueAppRcvEmmMsg(evnt, evnt->m.emmEvnt->msgId, ueCb);
+
+   UE_LOG_EXITFN(ueAppCb, ret);
+}
+
+// added for UR
+/*
+ *
+ *       Fun: ueAppEmmHndlInUrReq
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueAppEmmHndlInUrReq(CmNasEvnt *evnt, UeCb *ueCb)
+{
+   S16 ret = ROK;
+   UeAppCb *ueAppCb = NULLP;
+
+   UE_GET_CB(ueAppCb);
+   UE_LOG_ENTERFN(ueAppCb);
+
+   UE_LOG_DEBUG(ueAppCb, "Handling Incoming Usage Report request message");
    /*send message to USER*/
    ret = ueAppRcvEmmMsg(evnt, evnt->m.emmEvnt->msgId, ueCb);
 
@@ -7661,6 +7750,19 @@ PRIVATE S16 ueAppEmmHdlIncUeEvnt(CmNasEvnt *ueEvnt, UeCb *ueCb)
             ret = RFAILED;
          }
          break;
+      }
+      // added for UR
+      case CM_EMM_MSG_USAGE_REPORT_REQ:
+      {
+         UE_LOG_DEBUG(ueAppCb, "Received Usage Report Request");
+         ret = ueAppEmmHndlInUrReq(ueEvnt, ueCb);
+         if (ret != ROK)
+         {
+            UE_LOG_ERROR(ueAppCb, "Handling Incoming Usage Report "\
+                  "Request message failed");
+            ret = RFAILED;
+         }
+         break;       
       }
 
       case CM_EMM_MSG_SEC_MODE_CMD:
@@ -9687,11 +9789,6 @@ PRIVATE S16 ueAuthBrUtAddKeys(UeBtInfo* ueBTCtxt, UeAppSecCtxtCb* secCtxt)
    int rc = RSA_private_decrypt(CM_EMM_MAX_BR_TOKEN, (unsigned char *)ueBTCtxt->token, (unsigned char *)ueBTCtxt->plain_token, ueBTCtxt->ue_private_rsa, RSA_PKCS1_PADDING);  
    // add Kasme
    cmMemcpy(secCtxt->kasme, ueBTCtxt->plain_token + BR_ID_SIZE + UT_ID_SIZE, UE_APP_SZ_KASME_KEY);
-   char err_buf[120];
-   ERR_error_string(ERR_get_error(), err_buf);
-   printf("RSA size: %d, RC: %d, error code %s\n", RSA_size(ueBTCtxt->ue_private_rsa), rc,  err_buf);
-   printf("First byte of kasme %d, last byte %d\n", ueBTCtxt->token[0], ueBTCtxt->token[CM_EMM_MAX_BR_TOKEN - 1]);
-   printf("First byte of kasme %d, last byte %d\n", secCtxt->kasme[0], secCtxt->kasme[UE_APP_SZ_KASME_KEY - 1]);
    RETVALUE(ROK);
 }
 
@@ -9756,16 +9853,15 @@ PRIVATE S16 ueAppSndBtAuthResponse(UeCb *ueCb)
    UE_GET_CB(ueAppCb);
    UE_LOG_ENTERFN(ueAppCb);
 
-   UE_LOG_DEBUG(ueAppCb, "Authenticating the Broker and uTelco");
+   // UE_LOG_DEBUG(ueAppCb, "Authenticating the Broker and uTelco");
 
-   ret = ueAuthBrUtAddKeys(&(ueCb->ueBTCtxt), &(ueCb->secCtxt)); // authenticate br & ut, and add kasme
+   // ret = ueAuthBrUtAddKeys(&(ueCb->ueBTCtxt), &(ueCb->secCtxt)); // authenticate br & ut, and add kasme
 
-   if (ROK != ret)
-   {
-      UE_LOG_ERROR(ueAppCb, "BT Authentication Failed");
-      printf("BT Authentication Failed");
-      RETVALUE(ret);
-   }
+   // if (ROK != ret)
+   // {
+   //    UE_LOG_ERROR(ueAppCb, "BT Authentication Failed");
+   //    RETVALUE(ret);
+   // }
 
    UE_LOG_DEBUG(ueAppCb, "Sending BT Authentication response");
 
@@ -9832,6 +9928,15 @@ PRIVATE S16 ueAppSndBtAuthResponse(UeCb *ueCb)
       UE_LOG_DEBUG(ueAppCb, "Could not Send the BT Authentication response.\n");
       RETVALUE(RFAILED);
    }
+
+   ret = ueAuthBrUtAddKeys(&(ueCb->ueBTCtxt), &(ueCb->secCtxt)); // authenticate br & ut, and add kasme
+
+   if (ROK != ret)
+   {
+      UE_LOG_ERROR(ueAppCb, "BT Authentication Failed");
+      RETVALUE(ret);
+   }
+
    RETVALUE(ret);
 }
 
@@ -9896,4 +10001,245 @@ PRIVATE S16 ueAppUtlBldBtAuthResp
    cmMemcpy((U8 *)&btAuthRsp->RES, (U8 *)BtAuthParmRes, sizeof(CmEmmBtAuthPrmRES));
 
    RETVALUE(ROK);
+}
+
+// added for UR
+/*
+ *
+ *       Fun: ueProcUeUrResp
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueProcUeUrResp(UetMessage *tfwMsg, Pst *pst)
+{
+   S16 ret = ROK;
+   U16 ueId;
+   UeSQN sqnRcvd    = {0};
+   UeSQN maxSqnRcvd = {0};
+   UeRand randRcvd  = {0};
+
+   UeAppCb *ueAppCb = NULLP;
+   UeCb *ueCb = NULLP;
+   UE_GET_CB(ueAppCb);
+
+   UE_LOG_ENTERFN(ueAppCb);
+   ueId = tfwMsg->msg.ueUetUrRsp.ueId;
+
+   /* Fetching the UeCb */
+   ret = ueDbmFetchUe(ueId, (PTR*)&ueCb);
+   if (ret != ROK)
+   {
+      UE_LOG_ERROR(ueAppCb, "UeCb List NULL ueId = %d", ueId);
+      RETVALUE(ret);
+   }
+
+   ret = ueAppSndUrResponse(ueCb);
+   if (ret != ROK)
+   {
+      UE_LOG_ERROR(ueAppCb, "Could not send the Ur Response message to "\
+            "eNodeB");
+      RETVALUE(ret);
+   }
+   UE_LOG_EXITFN(ueAppCb, ret);
+}
+
+PRIVATE S16 ueAppSndUrResponse(UeCb *ueCb)
+{
+   U8                   isPlainMsg   = TRUE;
+   S16                  ret          = ROK;
+   UeAppCb              *ueAppCb = NULLP;
+   UeAppMsg             srcMsg;
+   UeAppMsg             dstMsg;
+   CmNasEvnt            *urRspEvnt = NULLP;
+   NbuUlNasMsg          *pUlNbMsg    = NULLP;
+   NhuDedicatedInfoNAS  nasEncPdu;
+
+   UE_GET_CB(ueAppCb);
+   UE_LOG_ENTERFN(ueAppCb);
+
+   /* Get UE Report and UE Sig */
+   CmEmmUrRspPrmUeRep    urRspPrmUeRep;
+   CmEmmUrRspPrmUeSig    urRspPrmUeSig;
+   cmMemset((U8*)&urRspPrmUeRep, 0, sizeof(CmEmmUrRspPrmUeRep));
+   cmMemset((U8*)&urRspPrmUeSig, 0, sizeof(CmEmmUrRspPrmUeSig));
+   ret = ueAppUtlGetUrRep(ueCb, &urRspPrmUeRep, &urRspPrmUeSig);
+   ret = ueAppUtlBldUrResp(ueCb, &urRspEvnt, &urRspPrmUeRep, &urRspPrmUeSig);
+   if(ROK != ret)
+   {
+      UE_LOG_DEBUG(ueAppCb, "Could not Build the Usage Report response");
+      RETVALUE(ret);
+   }
+
+   /* NB message filliing */
+   pUlNbMsg = (NbuUlNasMsg *)ueAlloc(sizeof(NbuUlNasMsg));
+   /* Encoding Nas PDU */
+   ret = ueAppEdmEncode(urRspEvnt, &nasEncPdu);
+   if (ret != ROK)
+   {
+      UE_LOG_ERROR(ueAppCb, "Usage Report Response message Encode Failed");
+      CM_FREE_NASEVNT(&urRspEvnt);
+      RETVALUE(ret);
+   }
+
+   /** Integrity Protected **/
+   if(CM_EMM_SEC_HDR_TYPE_PLAIN_NAS_MSG != urRspEvnt->secHT)
+   {
+      isPlainMsg = FALSE;
+      srcMsg.val = nasEncPdu.val;
+      srcMsg.len = nasEncPdu.len;
+      ret = ueAppCmpUplnkSec(&ueCb->secCtxt, urRspEvnt->secHT, &srcMsg,
+            &dstMsg);
+      if(ROK != ret)
+      {
+         UE_LOG_ERROR(ueAppCb, "Uplink Security Failed %d\n", urRspEvnt->secHT);
+         urRspEvnt->pdu = NULLP;
+         CM_FREE_NASEVNT(&urRspEvnt);
+         EDM_FREE(nasEncPdu.val, CM_MAX_EMM_ESM_PDU);
+         RETVALUE(ret);
+      }
+      EDM_FREE(nasEncPdu.val, CM_MAX_EMM_ESM_PDU);
+      nasEncPdu.val = dstMsg.val;
+      nasEncPdu.len = dstMsg.len;
+   }
+   CM_FREE_NASEVNT(&urRspEvnt);
+
+   pUlNbMsg->ueId = ueCb->ueId;
+   pUlNbMsg->nasPdu.pres = TRUE;
+   pUlNbMsg->nasPdu.len = nasEncPdu.len;
+
+   pUlNbMsg->nasPdu.val = (U8 *)ueAlloc(pUlNbMsg->nasPdu.len);
+   cmMemcpy((U8 *)pUlNbMsg->nasPdu.val, (U8 *)nasEncPdu.val,
+         pUlNbMsg->nasPdu.len);
+
+   if(isPlainMsg)
+   {
+      EDM_FREE(nasEncPdu.val, CM_MAX_EMM_ESM_PDU);
+   }
+
+   UE_LOG_DEBUG(ueAppCb, "Sending UR response");
+   ret = ueSendUlNasMsgToNb(pUlNbMsg,&ueAppCb->nbPst);
+   if (ret != ROK)
+   {
+      UE_LOG_DEBUG(ueAppCb, "Could not Send the Report Response response.\n");
+      RETVALUE(RFAILED);
+   }
+   RETVALUE(ROK);
+}
+/*
+ *
+ *       Fun: ueAppUtlBldUrResp
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueAppUtlBldUrResp
+(
+ UeCb *ueCb,
+ CmNasEvnt **ueEvt,
+ CmEmmUrRspPrmUeRep *UrRspPrmUeRep, 
+ CmEmmUrRspPrmUeSig *UrRspPrmUeSig
+)
+{
+   UeAppCb *ueAppCb = NULLP;
+   CmEmmUrRsp  *urRsp = NULLP;
+   CmEmmMsg *emmMsg = NULLP;
+
+   UE_GET_CB(ueAppCb);
+   UE_LOG_ENTERFN(ueAppCb);
+
+   UE_LOG_DEBUG(ueAppCb, "Building Usage report response");
+
+   if(ueEvt == NULLP)
+   {
+      RETVALUE(RFAILED);
+   }
+   /* Allocate memory for pdu */
+   CM_ALLOC_NASEVNT (ueEvt, CM_EMM_PD);
+
+   if(*ueEvt == NULLP)
+   {
+      RETVALUE(RFAILED);
+   }
+   if (cmGetMem(&((*ueEvt)->memCp), sizeof(CmEmmMsg), (Ptr *)&emmMsg) != ROK)
+   {
+      CM_FREE_NASEVNT(ueEvt);
+      RETVALUE(RFAILED);
+   }
+
+   (*ueEvt)->m.emmEvnt = emmMsg;
+   urRsp = &((*ueEvt)->m.emmEvnt->u.UrRsp);
+
+   /* Fill header information*/
+
+   (*ueEvt)->secHT = CM_NAS_SEC_HDR_TYPE_INT_PRTD_ENC;
+   /* Security header type is "Plain NAS message, not security protected" */
+   emmMsg->secHdrType = CM_EMM_SEC_HDR_TYPE_PLAIN_NAS_MSG;
+   emmMsg->protDisc = CM_EMM_PD;
+   emmMsg->msgId = CM_EMM_MSG_USAGE_REPORT_RSP;
+
+   /* Fill mandatory IEs */
+   /* UR response parameter*/
+   cmMemcpy((U8 *)&urRsp->uerep, (U8 *)UrRspPrmUeRep, sizeof(CmEmmUrRspPrmUeRep));
+   cmMemcpy((U8 *)&urRsp->uesig, (U8 *)UrRspPrmUeSig, sizeof(CmEmmUrRspPrmUeSig));
+
+   RETVALUE(ROK);
+}
+/*
+ *
+ *       Fun: ueAppUtlGetUrRep
+ *
+ *       Desc:
+ *
+ *       Ret:  ROK - ok; RFAILED - failed
+ *
+ *       Notes: none
+ *
+ *       File:  ue_app.c
+ *
+ */
+PRIVATE S16 ueAppUtlGetUrRep
+(
+ UeCb *ueCb,
+ CmEmmUrRspPrmUeRep *UrRspPrmUeRep, 
+ CmEmmUrRspPrmUeSig *UrRspPrmUeSig
+)
+{
+  // use a random token for now, will need to actually fetch the report
+  uint8_t plain_report[CM_EMM_MAX_BR_TOKEN];
+  unsigned int i = 0;
+  unsigned int random_length = 50; 
+  for(; i < random_length; i++)
+  {
+      plain_report[i] = (uint8_t) (rand() % 256);
+  }
+  int rep_size = RSA_public_encrypt(random_length, (unsigned char *)plain_report, (unsigned char *)UrRspPrmUeRep->val, ueCb->ueBTCtxt.br_public_rsa, RSA_PKCS1_PADDING);
+  if( rep_size < 0)
+  {
+      RETVALUE(RFAILED);
+  }  
+  UrRspPrmUeRep->pres = true;
+  UrRspPrmUeRep->len = rep_size; 
+  uint8_t digest[SHA_DIGEST_LENGTH];
+  SHA1((unsigned char*) UrRspPrmUeRep->val, CM_EMM_MAX_UE_REP, digest);
+  unsigned int sig_length;
+  if(ECDSA_sign(NID_sha1, digest, SHA_DIGEST_LENGTH, (unsigned char*) UrRspPrmUeSig->val, &sig_length, ueCb->ueBTCtxt.ue_private_ecdsa) == 0)
+  {
+      RETVALUE(RFAILED);
+  }
+  UrRspPrmUeSig->pres = true;
+  UrRspPrmUeSig->len = sig_length; 
+  RETVALUE(ROK);
 }

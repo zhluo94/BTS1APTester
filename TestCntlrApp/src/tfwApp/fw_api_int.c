@@ -567,7 +567,36 @@ PUBLIC S16 handlBtAuthResp(ueBtAuthResp_t *data)
 
    FW_ALLOC_MEM(fwCb, &uetMsg, sizeof(UetMessage));
    uetMsg->msgType = UE_BT_AUTH_RES_TYPE;
-   uetMsg->msg.ueUetAuthRsp.ueId = data->ue_Id;
+   uetMsg->msg.ueUetBtAuthRsp.ueId = data->ue_Id;
+   fwSendToUeApp(uetMsg);
+   RETVALUE(ROK);
+}
+// added for UR
+/*
+ *
+ *   Fun:   handlUrResp
+ *
+ *   Desc:  This function is used to handle BT Auth Response
+ *          from Test Controller
+ *
+ *   Ret:   None
+ *
+ *   Notes: None
+ *
+ *   File:  fw_api_int.c
+ *
+ */
+PUBLIC S16 handlUrResp(ueUrResp_t *data)
+{
+   FwCb *fwCb = NULLP;
+   UetMessage *uetMsg = NULLP;
+   /*UeUetAuthRsp *ueAuthResp = NULLP;*/
+   FW_GET_CB(fwCb);
+   FW_LOG_ENTERFN(fwCb);
+
+   FW_ALLOC_MEM(fwCb, &uetMsg, sizeof(UetMessage));
+   uetMsg->msgType = UE_UR_RES_TYPE;
+   uetMsg->msg.ueUetUrRsp.ueId = data->ue_Id;
    fwSendToUeApp(uetMsg);
    RETVALUE(ROK);
 }
@@ -967,7 +996,7 @@ PUBLIC S16 handleAttachReq(ueAttachRequest_t *data)
    } else {
       ueAttachReq->btattachparameterbrid.pres = FALSE;
    }
-   
+
    fwSendToUeApp(uetMsg);
    FW_LOG_EXITFN(fwCb, ROK);
 }

@@ -124,6 +124,8 @@ PRIVATE Void sendUeErabSetupReqFailedForBearers( UetMessage *erab_setup_req_fail
 /* added for brokerd uTelco */
 PUBLIC S16 ueBtAuthReqInd(Pst *pst,UetMessage *uetBtAuthReqInd);
 PUBLIC S16 sendUeBtAuthReqIndToTstCntlr(UetMessage *uetMsg);
+/* added for UR */
+PUBLIC S16 ueUrReqInd(Pst *pst,UetMessage *uetUrReqInd);
 
 /*
 *        Fun:  sendUeAppConfigRespToTstCntlr
@@ -216,6 +218,13 @@ PUBLIC S16 handleMessageFromUeApp
       {
          FW_LOG_DEBUG(fwCb, "Recieved BT Auth Indication");
          ueBtAuthReqInd(pst, uetRspMsg);
+         break;
+      }
+      // added for UR
+      case UE_UR_REQ_IND_TYPE:
+      {
+         FW_LOG_DEBUG(fwCb, "Recieved UR Req Indication");
+         ueUrReqInd(pst, uetRspMsg);
          break;
       }
       case UE_SEC_MOD_CMD_IND_TYPE:
@@ -646,7 +655,6 @@ PUBLIC S16 ueBtAuthReqInd
       /*else, send to test controller*/
       else
       {
-         //TODO: focus on e2e attach first
          sendUeBtAuthReqIndToTstCntlr(uetBtAuthReqInd);
       }
    }
@@ -686,6 +694,44 @@ PUBLIC S16 sendUeBtAuthReqIndToTstCntlr(UetMessage *uetMsg)
    FW_FREE_MEM(fwCb, tfwBtAuthReq, sizeof(ueBtAuthReqInd_t));
    FW_LOG_EXITFN(fwCb, ret);
 } /* sendUeBtAuthReqIndToTstCntlr */
+
+// added for UR
+/*
+*        Fun:   ueUrReqInd
+*
+*        Desc:  Handles Auth Request indications.
+*
+*        Ret:   ROK
+*
+*        Notes: None
+*
+*        File: fw_uemsg_handler.c
+*
+*/
+PUBLIC S16 ueUrReqInd
+(
+ Pst *pst,
+ UetMessage *uetUrReqInd
+)
+{
+   S16 ret = ROK;
+   FwCb *fwCb = NULLP;
+
+   FW_GET_CB(fwCb);
+   FW_LOG_ENTERFN(fwCb);
+
+   if(uetUrReqInd->msgType == UE_UR_REQ_IND_TYPE)
+   {
+      ueUrResp_t *urResp = NULL;
+      FW_ALLOC_MEM(fwCb, &urResp, sizeof(ueUrResp_t));
+      urResp->ue_Id = uetUrReqInd->msg.ueUetUrReqInd.ueId;
+      handlUrResp(urResp);
+      FW_FREE_MEM(fwCb, urResp, sizeof(ueUrResp_t));
+   }
+
+   FW_LOG_EXITFN(fwCb, ret);
+} /* ueUrReqInd */
+
 
 
 /*

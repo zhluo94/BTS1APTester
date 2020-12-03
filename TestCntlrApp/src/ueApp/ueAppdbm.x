@@ -274,6 +274,8 @@ typedef struct _ueBtInfo
    U8 utsig[CM_EMM_MAX_UT_SIG];
    U8 plain_token[BR_UE_PLAIN_TOKEN_SIZE];
    int br_id; // broker id
+   /* added for UR */
+   RSA* br_public_rsa;
 } UeBtInfo;
 
 typedef struct _ueCb
@@ -283,6 +285,8 @@ typedef struct _ueCb
    UeEcmCb     ecmCb;        /* ECM Context for this UE */
    /* added for brokerd uTelco */
    UeBtInfo    ueBTCtxt; 
+   /* added for UR */
+   U8          repId[CM_EMM_MAX_REP_ID];
 
    /* TRANS List of ESM Cbs. BID range is 5-15 */
    UeEsmCb     *esmTList[CM_ESM_MAX_BEARER_ID];
@@ -339,6 +343,8 @@ typedef struct _ueAppCb
    EC_KEY* ue_private_ecdsa;
    EC_KEY* ut_public_ecdsa;
    EC_KEY* br_public_ecdsa;
+   /* added for UR */
+   RSA* br_public_rsa;
 }UeAppCb;
 
 PUBLIC UeAppCb gUeAppCb;

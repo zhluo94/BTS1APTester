@@ -796,6 +796,13 @@ typedef struct ueBtAuthResp
    //TOADD
 }ueBtAuthResp_t;
 
+/* added for UR */
+typedef struct ueUrResp
+{
+   U8 ue_Id;
+   //TOADD
+}ueUrResp_t;
+
 typedef struct ueSecModeCmdInd
 {
    U8 ue_Id;

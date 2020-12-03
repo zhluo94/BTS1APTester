@@ -212,6 +212,8 @@ typedef enum _ueMsgTypes
 /* added for brokerd utelco */
    UE_BT_AUTH_REQ_IND_TYPE,
    UE_BT_AUTH_RES_TYPE,
+   UE_UR_REQ_IND_TYPE,
+   UE_UR_RES_TYPE,
 }UeMsgTypes;
 
 typedef struct _ueEmmEpsAtchType
@@ -412,6 +414,19 @@ typedef struct _ueUetBtAuthRsp
    U8 ueId;
    // TODO: add more later
 }UeUetBtAuthRsp;
+
+/* added for UR */
+typedef struct _ueUetUrReqInd
+{
+   U8 ueId;
+   // TODO: add more later
+}UeUetUrReqInd;
+
+typedef struct _ueUetUrRsp
+{
+   U8 ueId;
+   // TODO: add more later
+}UeUetUrRsp;
 
 /* ends added for brokerd utelco */
 
@@ -993,6 +1008,9 @@ typedef struct _uetMessage
      /* added for brokerd utelco */
      UeUetBtAuthReqInd      ueUetBtAuthReqInd;
      UeUetBtAuthRsp         ueUetBtAuthRsp;
+     /* added for UR */
+     UeUetUrReqInd      ueUetUrReqInd;
+     UeUetUrRsp         ueUetUrRsp;
    }msg;
 }UetMessage;
 /* Ue Interface general Structure declerations */

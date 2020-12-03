@@ -84,6 +84,10 @@ EXTERN "C" {
 #define CM_EMM_IE_BT_ATTACH_REQUEST_ATTACH_PARAMETER_TOKEN 0x69 /* 0x69 = 105 */
 #define CM_EMM_IE_BT_ATTACH_REQUEST_ATTACH_PARAMETER_UE_SIG 0x6a /* 0x6a = 106 */
 #define CM_EMM_IE_BT_ATTACH_REQUEST_ATTACH_PARAMETER_BR_ID 0x6b /* 0x6b = 107 */
+// added for UR
+#define CM_EMM_IE_USAGE_REPORT_PARAMETER_REPORT_ID 0x6c
+#define CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_REPORT 0x6d
+#define CM_EMM_IE_USAGE_REPORT_PARAMETER_UE_SIG 0x6e
 
 #define CM_EMM_MAX_IE 20
 #define CM_MAX_EMM_MSG_NAME 35
@@ -135,6 +139,9 @@ EXTERN "C" {
 // added for brokerd uTelco
 #define CM_EMM_MSG_BROKER_AUTH_REQ 0x70
 #define CM_EMM_MSG_BROKER_AUTH_RSP 0x71
+// added for UR
+#define CM_EMM_MSG_USAGE_REPORT_REQ 0x72
+#define CM_EMM_MSG_USAGE_REPORT_RSP 0x73
 
 /* EMM Message Index values */
 #define CM_EMM_IDX_ATTACH_ACC    0x00
@@ -172,9 +179,12 @@ EXTERN "C" {
 // added for brokered utelco
 #define CM_EMM_IDX_BT_AUTH_REQ   0x20
 #define CM_EMM_IDX_BT_AUTH_RSP   0x21 
+// added for UR
+#define CM_EMM_IDX_UR_REQ   0x22
+#define CM_EMM_IDX_UR_RSP   0x23 
 
-#define CM_EMM_MAX_MSG           0x22//0x20
-#define CM_EMM_MAX_MSG_VALUE     0x29//0x27
+#define CM_EMM_MAX_MSG           0x24//0x22//0x20
+#define CM_EMM_MAX_MSG_VALUE     0x2b//0x29//0x27
 
 #define CM_EMM_IDX_INVALID       0xff
 
@@ -204,7 +214,11 @@ EXTERN "C" {
 // added for brokerd utelco
 #define CM_EMM_MAX_BR_TOKEN 128
 #define CM_EMM_MAX_BR_SIG 50
-#define CM_EMM_MAX_UT_SIG 50  
+#define CM_EMM_MAX_UT_SIG 50
+// added for UR
+#define CM_EMM_MAX_REP_ID 4
+#define CM_EMM_MAX_UE_REP 128
+#define CM_EMM_MAX_UE_SIG 50 
 /* type of coding */
 #define CM_EMM_ENC 0
 #define CM_EMM_DEC 1
@@ -217,6 +231,7 @@ EXTERN "C" {
 
 /* Message to EDM index map */
 // added first two cases for brokerd telco
+// added third and forth cases for UR
 #define CM_EMM_MSGIDXMAP(_msgType, _msgIdx, _coding) \
 do \
 { \
@@ -230,6 +245,18 @@ do \
        ) \
    { \
       _msgIdx = CM_EMM_IDX_BT_AUTH_RSP; \
+      break; \
+   } \
+   if (_msgType == CM_EMM_MSG_USAGE_REPORT_REQ \
+       ) \
+   { \
+      _msgIdx = CM_EMM_IDX_UR_REQ; \
+      break; \
+   } \
+   if (_msgType == CM_EMM_MSG_USAGE_REPORT_RSP \
+       ) \
+   { \
+      _msgIdx = CM_EMM_IDX_UR_RSP; \
       break; \
    } \
    if ((_msgType & 0x3f) >= CM_EMM_MAX_MSG_VALUE) \

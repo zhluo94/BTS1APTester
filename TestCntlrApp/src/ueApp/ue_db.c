@@ -70,24 +70,29 @@ PRIVATE S16 readUeKeys(UeAppCb *ueAppCb)
   FILE * pri_ue_ec_fp  = fopen("/home/vagrant/key_files/ue_ec_pri.pem", "rb");
   FILE * pub_ut_ec_fp  = fopen("/home/vagrant/key_files/ut_ec_pub.pem", "rb");
   FILE * pub_br_ec_fp  = fopen("/home/vagrant/key_files/br_ec_pub.pem", "rb");
-  if(pri_ue_rsa_fp == NULL || pri_ue_ec_fp == NULL || pub_ut_ec_fp == NULL || pub_br_ec_fp == NULL) {
+  FILE * pub_br_rsa_fp  = fopen("/home/vagrant/key_files/br_rsa_pub.pem", "rb");
+
+  if(pri_ue_rsa_fp == NULL || pri_ue_ec_fp == NULL || pub_ut_ec_fp == NULL || pub_br_ec_fp == NULL || pub_br_rsa_fp == NULL) {
     RETVALUE(RFAILED);
   }
-  EVP_PKEY *pkey_ue_rsa_pri, *pkey_ue_ec_pri, *pkey_ut_ec_pub, *pkey_br_ec_pub;
+  EVP_PKEY *pkey_ue_rsa_pri, *pkey_ue_ec_pri, *pkey_ut_ec_pub, *pkey_br_ec_pub, *pkey_br_rsa_pub;
   
   pkey_ue_rsa_pri = PEM_read_PrivateKey(pri_ue_rsa_fp, NULL, 0, NULL);
   pkey_ue_ec_pri = PEM_read_PrivateKey(pri_ue_ec_fp, NULL, 0, NULL); 
   pkey_ut_ec_pub = PEM_read_PUBKEY(pub_ut_ec_fp, NULL, 0, NULL);
   pkey_br_ec_pub = PEM_read_PUBKEY(pub_br_ec_fp, NULL, 0, NULL);
+  pkey_br_rsa_pub = PEM_read_PUBKEY(pub_br_rsa_fp, NULL, 0, NULL);
   fclose(pri_ue_rsa_fp);
   fclose(pri_ue_ec_fp);
   fclose(pub_ut_ec_fp);
   fclose(pub_br_ec_fp);
+  fclose(pub_br_rsa_fp);
 
   ueAppCb->ue_private_rsa = EVP_PKEY_get1_RSA(pkey_ue_rsa_pri);
   ueAppCb->ue_private_ecdsa = EVP_PKEY_get1_EC_KEY(pkey_ue_ec_pri);
   ueAppCb->ut_public_ecdsa = EVP_PKEY_get1_EC_KEY(pkey_ut_ec_pub);
   ueAppCb->br_public_ecdsa = EVP_PKEY_get1_EC_KEY(pkey_br_ec_pub);
+  ueAppCb->br_public_rsa = EVP_PKEY_get1_RSA(pkey_br_rsa_pub);
   RETVALUE(ROK);
 }
 
