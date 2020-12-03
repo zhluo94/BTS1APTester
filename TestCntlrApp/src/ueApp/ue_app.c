@@ -6436,7 +6436,6 @@ PRIVATE S16 ueAppRcvEmmMsg
          cmMemset((U8*)&ueCb->secCtxt, 0, sizeof(ueCb->secCtxt));
          cmMemcpy(ueCb->ueBTCtxt.token, btAuthReq->token.val, CM_EMM_MAX_BR_TOKEN);
          cmMemcpy(ueCb->ueBTCtxt.brsig, btAuthReq->brsig.val, CM_EMM_MAX_BR_SIG);
-         cmMemcpy(ueCb->ueBTCtxt.utsig, btAuthReq->utsig.val, CM_EMM_MAX_UT_SIG);
          ueCb->secCtxt.tsc = btAuthReq->nasKsi.tsc;
          ueCb->secCtxt.ksi = btAuthReq->nasKsi.id;
 
@@ -9773,16 +9772,6 @@ PRIVATE S16 ueAuthBrUtAddKeys(UeBtInfo* ueBTCtxt, UeAppSecCtxtCb* secCtxt)
    if(ECDSA_verify(NID_sha1, digest, SHA_DIGEST_LENGTH, (unsigned char *)ueBTCtxt->brsig, _get_sig_len(ueBTCtxt->brsig), ueBTCtxt->br_public_ecdsa) != 1)
    {
       UE_LOG_ERROR(ueAppCb, "Fails in verifying broker's signature");
-      RETVALUE(RFAILED);
-   }
-   // verify uTelco's signature
-   uint8_t payload[CM_EMM_MAX_BR_TOKEN + CM_EMM_MAX_BR_SIG];
-   cmMemcpy(payload, ueBTCtxt->token, CM_EMM_MAX_BR_TOKEN);
-   cmMemcpy(payload + CM_EMM_MAX_BR_TOKEN, ueBTCtxt->brsig, CM_EMM_MAX_BR_SIG);
-   SHA1(payload, CM_EMM_MAX_BR_TOKEN + CM_EMM_MAX_BR_SIG, digest);
-   if(ECDSA_verify(NID_sha1, digest, SHA_DIGEST_LENGTH, (unsigned char *)ueBTCtxt->utsig, _get_sig_len(ueBTCtxt->utsig), ueBTCtxt->ut_public_ecdsa) != 1)
-   {
-      UE_LOG_ERROR(ueAppCb, "Fails in verifying uTelco's signature");
       RETVALUE(RFAILED);
    }
    // decrypt the contents

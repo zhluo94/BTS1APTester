@@ -214,7 +214,6 @@ EXTERN "C" {
 // added for brokerd utelco
 #define CM_EMM_MAX_BR_TOKEN 128
 #define CM_EMM_MAX_BR_SIG 50
-#define CM_EMM_MAX_UT_SIG 50
 // added for UR
 #define CM_EMM_MAX_REP_ID 4
 #define CM_EMM_MAX_UE_REP 128

@@ -858,14 +858,6 @@ typedef struct CmEmmBTAuthPrmBrSig
    U8 val[CM_EMM_MAX_BR_SIG];
 }CmEmmBTAuthPrmBrSig;
 
-/* BT Authentication Parameter BRSIG */
-typedef struct CmEmmBTAuthPrmUtSig
-{
-   U8 pres;
-   U8 len;
-   U8 val[CM_EMM_MAX_UT_SIG];
-}CmEmmBTAuthPrmUtSig;
-
 /* BT Authentication Response Parameter RES */
 /* TODO: add more things to it, now it's just a boolean */
 typedef struct cmEmmBtAuthRspPrmRES
@@ -1088,14 +1080,12 @@ NAS key set identifierASME                      M          V        1/2
 Spare half octet                                M          V        1/2
 BR Authentication parameter TOKEN               M          LV       (128 + 1 or 2)
 BR Authentication parameter BRSIG               M          LV       (50 + 1 or 2)
-BR Authentication parameter UTSIG               M          LV       (50 + 1 or 2)
 */
 typedef struct CmEmmBtAuthReq
 {
    CmEmmNasKsi nasKsi;
    CmEmmBTAuthPrmToken token;
    CmEmmBTAuthPrmBrSig brsig;
-   CmEmmBTAuthPrmUtSig utsig;
 }CmEmmBtAuthReq;
 
 /* Bt Authentication Response */

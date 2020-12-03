@@ -200,14 +200,12 @@ PRIVATE S16 cmEmmEncAttachUeSig ARGS((U8* buf, U32* indx, CmEmmMsg *msg, U16 *le
 PRIVATE S16 cmEmmEncAttachBrId  ARGS((U8* buf, U32* indx, CmEmmMsg *msg, U16 *len));
 PRIVATE S16 cmEmmEncBtAuthToken ARGS((U8* buf, U32* indx, CmEmmMsg *msg, U16 *len));
 PRIVATE S16 cmEmmEncBtAuthBrSig ARGS((U8* buf, U32* indx, CmEmmMsg *msg, U16 *len));
-PRIVATE S16 cmEmmEncBtAuthUtSig ARGS((U8* buf, U32* indx, CmEmmMsg *msg, U16 *len));
 
 PRIVATE S16 cmEmmDecAttachToken ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
 PRIVATE S16 cmEmmDecAttachUeSig ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
 PRIVATE S16 cmEmmDecAttachBrId  ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
 PRIVATE S16 cmEmmDecBtAuthToken ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
 PRIVATE S16 cmEmmDecBtAuthBrSig ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
-PRIVATE S16 cmEmmDecBtAuthUtSig ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
 
 PRIVATE S16 cmEmmEncBtRES ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U16 *len));
 PRIVATE S16 cmEmmDecBtRES ARGS((U8* buf, U32* indx, CmEmmMsg* msg, U32 len));
@@ -638,10 +636,8 @@ CmEmmEdmMsgFormat emmMsgTab[CM_EMM_MAX_MSG][CM_EMM_MAX_IE] =
          NULLP, cmEmmEncSpareHalfOct, NULLP},
       {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_TOKEN, EDM_PRES_MANDATORY, EDM_FMTLV, FALSE, 0,
          NULLP, cmEmmEncBtAuthToken, NULLP},
-      {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_BR_SIG, EDM_PRES_MANDATORY, EDM_FMTLV, FALSE, 0,
-         NULLP, cmEmmEncBtAuthBrSig, NULLP},
-      {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_UT_SIG, EDM_PRES_MANDATORY, EDM_FMTLV, TRUE, 0,
-         NULLP, cmEmmEncBtAuthUtSig, NULLP}
+      {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_BR_SIG, EDM_PRES_MANDATORY, EDM_FMTLV, TRUE, 0,
+         NULLP, cmEmmEncBtAuthBrSig, NULLP}
    },
 
    /* Broker Authentication Response */ 
@@ -997,10 +993,8 @@ CmEmmEdmMsgFormat emmMsgTab[CM_EMM_MAX_MSG][CM_EMM_MAX_IE] =
          NULLP, cmEmmEncSpareHalfOct, cmEmmDecSpareHalfOct},
       {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_TOKEN, EDM_PRES_MANDATORY, EDM_FMTLV, FALSE, 0,
          NULLP, cmEmmEncBtAuthToken, cmEmmDecBtAuthToken},
-      {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_BR_SIG, EDM_PRES_MANDATORY, EDM_FMTLV, FALSE, 0,
-         NULLP, cmEmmEncBtAuthBrSig, cmEmmDecBtAuthBrSig},
-      {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_UT_SIG, EDM_PRES_MANDATORY, EDM_FMTLV, TRUE, 0,
-         NULLP, cmEmmEncBtAuthUtSig, cmEmmDecBtAuthUtSig}
+      {CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_BR_SIG, EDM_PRES_MANDATORY, EDM_FMTLV, TRUE, 0,
+         NULLP, cmEmmEncBtAuthBrSig, cmEmmDecBtAuthBrSig}
    },
 
    /* Broker Authentication Response */ 
@@ -9927,7 +9921,7 @@ CmEmmMsg *msg;
 U16 *len;
 #endif
 {
-   CmEmmBTAuthPrmUtSig *brsig;
+   CmEmmBTAuthPrmBrSig *brsig;
    EDM_TRC2(cmEmmEncBtAuthBrSig)
 
       switch(msg->msgId)
@@ -9963,72 +9957,6 @@ U16 *len;
 
    RETVALUE(ROK);
 } /* cmEmmEncBtAuthBrSig */
-
-/*
- *
- *       Fun:   cmEmmEncBtAuthUtSig
- *
- *       Desc:  This function 
- *
- *       Ret:  ROK - ok; RFAILED - failed
- *
- *       Notes: none
- *
-         File:  ue_emm_edm.c
- *
- */
-#ifdef ANSI
-PRIVATE S16 cmEmmEncBtAuthUtSig
-(
-U8 *buf,
-U32 *indx,
-CmEmmMsg *msg,
-U16 *len
-)
-#else
-PRIVATE S16 cmEmmEncBtAuthUtSig (buf, indx, msg, len)
-U8 *buf;
-U32 *indx;
-CmEmmMsg *msg;
-U16 *len;
-#endif
-{
-   CmEmmBTAuthPrmUtSig *utsig;
-   EDM_TRC2(cmEmmEncBtAuthUtSig)
-
-      switch(msg->msgId)
-      {
-         case CM_EMM_MSG_BROKER_AUTH_REQ:
-            {
-               utsig = &msg->u.btAuthReq.utsig;
-               break;
-            }
-         default:
-            {
-               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
-                        msg->msgId));
-               RETVALUE(RFAILED);
-            }
-      }
-
-   if (!utsig->pres)
-   {
-      RETVALUE(ROK);
-   }
-
-   /* Encode IE Id */
-   buf[(*indx)++] = CM_EMM_IE_BT_AUTHENTICATION_PARAMETER_UT_SIG;
-   /* Encode Length */
-   buf[(*indx)++] = utsig->len;
-
-   int i = 0;
-   for(i; i < utsig->len; i++) {
-    buf[(*indx)++] = utsig->val[i];
-   }
-   *len = utsig->len + 2;
-
-   RETVALUE(ROK);
-} /* cmEmmEncBtAuthUtSig */
 
 /*
  *
@@ -10602,67 +10530,6 @@ U32 len;
 
 
 } /* cmEmmDecBtAuthBrSig */
-
-/*
- *
- *       Fun:   cmEmmDecBtAuthUtSig
- *
- *       Desc:  This function 
- *
- *       Ret:  ROK - ok; RFAILED - failed
- *
- *       Notes: none
- *
-         File:  ue_emm_edm.c
- *
- */
-#ifdef ANSI
-PRIVATE S16 cmEmmDecBtAuthUtSig
-(
-U8 *buf,
-U32 *indx,
-CmEmmMsg *msg,
-U32 len
-)
-#else
-PRIVATE S16 cmEmmDecBtAuthUtSig (buf, indx, msg, len)
-U8 *buf;
-U32 *indx;
-CmEmmMsg *msg;
-U32 len;
-#endif
-{
-   CmEmmBTAuthPrmUtSig *utsig;
-   EDM_TRC2(cmEmmDecBtAuthUtSig)
-
-      switch(msg->msgId)
-      {
-         case CM_EMM_MSG_BROKER_AUTH_REQ:
-            {
-               utsig = &msg->u.btAuthReq.utsig;
-               break;
-            }
-         default:
-            {
-               EDM_DBG_ERROR((EDM_PRNTBUF, "Invalid message type (%d)\n",
-                        msg->msgId));
-               RETVALUE(RFAILED);
-            }
-      }
-
-   utsig->pres = TRUE;
-
-   /* Length */
-   utsig->len = len/8;
-
-   int i = 0;
-   for(i; i < utsig->len; i++) {
-    utsig->val[i] = buf[(*indx)++];
-   }
-
-   RETVALUE(ROK);
-
-} /* cmEmmDecBtAuthUtSig */
 
 /*
  *

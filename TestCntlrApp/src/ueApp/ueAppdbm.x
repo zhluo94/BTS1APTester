@@ -271,7 +271,6 @@ typedef struct _ueBtInfo
    EC_KEY* br_public_ecdsa;
    U8 token[CM_EMM_MAX_BR_TOKEN];
    U8 brsig[CM_EMM_MAX_BR_SIG];
-   U8 utsig[CM_EMM_MAX_UT_SIG];
    U8 plain_token[BR_UE_PLAIN_TOKEN_SIZE];
    int br_id; // broker id
    /* added for UR */
